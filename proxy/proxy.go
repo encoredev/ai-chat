@@ -20,8 +20,7 @@ var secrets struct {
 var BaseURL = func() url.URL {
 	ctx := context.Background()
 	baseURL := encore.Meta().APIBaseURL
-	rlog.Info("Proxy Env type", "type", encore.Meta().Environment.Type)
-	if encore.Meta().Environment.Type == encore.EnvDevelopment {
+	if encore.Meta().Environment.Cloud == encore.CloudLocal {
 		if secrets.NGrokToken == "" {
 			rlog.Warn("NGrokToken or NGrokDomain is not set, skipping ngrok")
 			return baseURL
