@@ -1,0 +1,20 @@
+
+The response should be formated as yaml with the character name as the key and the response as the value,
+e.g.
+```yaml
+Jane Doe: |
+    Hello!
+John Doe: |
+  A code example:
+  ```python
+  print("Hello, World!")
+  ```
+```
+Characters without any response should not be included in the reply
+Don't repeat yourself or an existing message
+If you choose to respond, you may only respond as %s or None
+If no character responds, just reply:
+```yaml
+None: |
+    nothing
+```
