@@ -22,20 +22,37 @@ type Config struct {
 	TopK        config.Int32
 }
 
+// This uses Encore Configuration, learn more: https://encore.dev/docs/develop/config
 var cfg = config.Load[*Config]()
 
+// This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
 var secrets struct {
 	GeminiJSONCredentials string
 }
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct {
 	client *genai.GenerativeModel
 }
 
+// Ping returns an error if the service is not available.
+// encore:api private
+func (p *Service) Ping(ctx context.Context) error {
+	if p == nil {
+		return errors.New("Gemini service is not available. Add GeminiJSONCredentials secret and configure Project to enable it.")
+	}
+	return nil
+}
+
+// initService initializes the Gemini service by creating a client and configuring the model.
 func initService() (*Service, error) {
+	if secrets.GeminiJSONCredentials == "" || cfg.Project() == "" {
+		return nil, nil
+	}
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, cfg.Project(), "us-east1", option.WithCredentialsJSON([]byte(secrets.GeminiJSONCredentials)))
+	client, err := genai.NewClient(ctx, cfg.Project(), cfg.Region(), option.WithCredentialsJSON([]byte(secrets.GeminiJSONCredentials)))
 	if err != nil {
 		return nil, errors.Wrap(err, "create client")
 	}
@@ -75,6 +92,9 @@ type GenerateAvatarResponse struct {
 	Image []byte
 }
 
+// GenerateAvatar generates an avatar image from a prompt. Imagen is however not yet publicly available.
+// This method is a placeholder for future functionality.
+//
 //encore:api private method=POST path=/gemini/generate-avatar
 func (p *Service) GenerateAvatar(ctx context.Context, req *GenerateAvatarRequest) (*GenerateAvatarResponse, error) {
 	return nil, nil
@@ -88,6 +108,7 @@ type AskResponse struct {
 	Message string
 }
 
+// flattenResponse flattens the response from the Gemini API into a single string.
 func flattenResponse(resp *genai.GenerateContentResponse) string {
 	var rtn strings.Builder
 	for i, part := range resp.Candidates[0].Content.Parts {
@@ -102,6 +123,8 @@ func flattenResponse(resp *genai.GenerateContentResponse) string {
 	return rtn.String()
 }
 
+// Ask sends a single message to the Gemini API and returns the response.
+//
 //encore:api private method=POST path=/gemini/ask
 func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error) {
 	session := p.client.StartChat()
@@ -116,29 +139,29 @@ type ContinueChatResponse struct {
 	Message string
 }
 
+// ContinueChat sends a series of messages to the Gemini API and returns the response.
+//
 //encore:api private method=POST path=/gemini/continue-chat
 func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*ContinueChatResponse, error) {
 	var history []*genai.Content
-	var curMsg *genai.Content
+	curMsg := &genai.Content{
+		Role: "user",
+	}
 	if req.SystemMsg != "" {
-		curMsg = &genai.Content{
-			Role: "user",
-			Parts: []genai.Part{
-				genai.Text(req.SystemMsg),
-			},
-		}
+		curMsg.Parts = append(curMsg.Parts, genai.Text(req.SystemMsg))
 	}
 	botNames := make(map[string]struct{})
 	for _, b := range req.Bots {
 		botNames[b.Name] = struct{}{}
 	}
+	// Gemini requires turned based conversation, so messages are aggregated by role.
 	for _, m := range req.Messages {
 		role := "user"
 		if req.FromBot(m) {
 			role = "model"
 		}
-		if curMsg == nil || curMsg.Role != role {
-			if curMsg != nil {
+		if curMsg.Role != role {
+			if len(curMsg.Parts) > 0 {
 				history = append(history, curMsg)
 			}
 			curMsg = &genai.Content{

@@ -7,14 +7,18 @@ import (
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider/discord"
-	"encore.app/chat/service/clients"
+	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 )
 
-func NewClient() *Client {
-	return &Client{}
+func NewClient(ctx context.Context) (*Client, bool) {
+	if discord.Ping(ctx) != nil {
+		return nil, false
+	}
+	return &Client{}, true
 }
 
+// Client wraps the discord service endpoints to implement the chat client interface.
 type Client struct{}
 
 func (p *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error) {
@@ -29,7 +33,7 @@ func (p *Client) GetUser(ctx context.Context, id client.UserID) (*client.User, e
 	return discord.GetUser(ctx, id)
 }
 
-func (p *Client) GetChannel(ctx context.Context, id client.ChannelID) client.Channel {
+func (p *Client) GetChannelClient(ctx context.Context, id client.ChannelID) client.ChannelClient {
 	return &Channel{
 		Client:    p,
 		channelID: id,
@@ -70,6 +74,6 @@ func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {
 }
 
 var (
-	_ client.Client  = (*Client)(nil)
-	_ client.Channel = (*Channel)(nil)
+	_ client.Client        = (*Client)(nil)
+	_ client.ChannelClient = (*Channel)(nil)
 )

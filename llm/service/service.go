@@ -5,7 +5,6 @@ package llm
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"fmt"
 	"image/png"
 	"strings"
@@ -18,29 +17,11 @@ import (
 	botdb "encore.app/bot/db"
 	chatdb "encore.app/chat/service/db"
 	"encore.app/llm/provider"
-	"encore.app/llm/service/clients"
-	"encore.app/llm/service/clients/gemini"
-	"encore.app/llm/service/clients/openai"
+	"encore.app/llm/service/client"
+	"encore.app/llm/service/client/gemini"
+	"encore.app/llm/service/client/openai"
 	"encore.dev/rlog"
 )
-
-//go:embed prompts/reply.txt
-var replyPrompt []byte
-
-//go:embed prompts/intro.txt
-var introPrompt []byte
-
-//go:embed prompts/goodbye.txt
-var goodbyePrompt []byte
-
-//go:embed prompts/avatar.txt
-var avatarPrompt []byte
-
-//go:embed prompts/persona.txt
-var personaPrompt []byte
-
-//go:embed prompts/response.txt
-var responsePrompt []byte
 
 type ChatRequest struct {
 	Bots        []*botdb.Bot
@@ -57,21 +38,31 @@ type BotResponse struct {
 	Messages []*provider.BotMessage
 }
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct {
 	providers map[string]client.Client
 }
 
+// initService is the constructor for the LLM service. It initializes the LLM providers.
 func initService() (*Service, error) {
+	ctx := context.Background()
 	svc := &Service{
-		providers: map[string]client.Client{
-			"openai": openai.NewClient(),
-			"gemini": gemini.NewClient(),
-		},
+		providers: map[string]client.Client{},
+	}
+	if openaiClient, ok := openai.NewClient(ctx); ok {
+		svc.providers["openai"] = openaiClient
+	}
+	if geminiClient, ok := gemini.NewClient(ctx); ok {
+		svc.providers["gemini"] = geminiClient
 	}
 	return svc, nil
 }
 
+// ProcessTask processes a task from the chat service by forwarding the request to the appropriate provider.
+//
+//encore:api private method=POST path=/ai/task
 func (svc *Service) ProcessTask(ctx context.Context, task *Task) error {
 	var res *BotResponse
 	var err error
@@ -98,7 +89,7 @@ func (svc *Service) ProcessTask(ctx context.Context, task *Task) error {
 		}
 	}
 	if len(res.Messages) > 0 {
-		_, err := BotMessageTopic.Publish(ctx, res)
+		_, err := LLMMessageTopic.Publish(ctx, res)
 		if err != nil {
 			rlog.Warn("publish message", "error", err)
 		}
@@ -106,6 +97,8 @@ func (svc *Service) ProcessTask(ctx context.Context, task *Task) error {
 	return nil
 }
 
+// Instruct sends a message to the AI provider to instruct the bot to perform an action.
+//
 //encore:api private path=/ai/instruct
 func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
 	msgs, err := svc.continueChat(ctx, req)
@@ -115,6 +108,8 @@ func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*B
 	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
 }
 
+// ContinueChat continues a chat conversation with the AI provider. It is called per channel and llm provider
+//
 //encore:api private path=/ai/chat
 func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
 	req.SystemMsg = req.SystemMsg + string(replyPrompt)
@@ -125,6 +120,8 @@ func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest)
 	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
 }
 
+// Introduce sends a message to the AI provider to introduce the bot to the channel.
+//
 //encore:api private path=/ai/introduce
 func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(introPrompt), req.Channel.Name)
@@ -135,6 +132,8 @@ func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*
 	return &BotResponse{Messages: resp, Channel: req.Channel}, nil
 }
 
+// Goodbye sends a message to the AI provider to say goodbye to the channel.
+//
 //encore:api private path=/ai/goodbye
 func (svc *Service) Goodbye(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(goodbyePrompt), req.Channel)
@@ -144,9 +143,6 @@ func (svc *Service) Goodbye(ctx context.Context, req *provider.ChatRequest) (*Bo
 	}
 	return &BotResponse{Messages: resp, Channel: req.Channel}, nil
 }
-
-//go:embed prompts/create_persona.txt
-var botPrompt []byte
 
 type GenerateBotProfileRequest struct {
 	Name     string `json:"name"`
@@ -159,6 +155,8 @@ type GenerateBotResponse struct {
 	Avatar  []byte
 }
 
+// GenerateBotProfile generates a bot profile and avatar using the specified provider.
+//
 //encore:api private method=POST path=/ai/bot
 func (svc *Service) GenerateBotProfile(ctx context.Context, req *GenerateBotProfileRequest) (*GenerateBotResponse, error) {
 	prov, ok := svc.providers[req.Provider]
@@ -176,6 +174,8 @@ func (svc *Service) GenerateBotProfile(ctx context.Context, req *GenerateBotProf
 	return &GenerateBotResponse{Profile: resp, Avatar: img}, nil
 }
 
+// formatBotProfiles formats a system message for the llm provider with the name
+// and profile of each bot.
 func formatBotProfiles(bots []*botdb.Bot) string {
 	res := strings.Builder{}
 	for _, b := range bots {
@@ -187,6 +187,8 @@ func formatBotProfiles(bots []*botdb.Bot) string {
 	return res.String()
 }
 
+// formatResponsePrompt formats a response instruction for the llm provider with the names
+// of the bots it can use to reply.
 func formatResponsePrompt(bots []*botdb.Bot) string {
 	users := strings.Builder{}
 	for i, user := range bots {
@@ -199,6 +201,7 @@ func formatResponsePrompt(bots []*botdb.Bot) string {
 	return fmt.Sprintf(string(responsePrompt), names)
 }
 
+// continueChat continues a chat conversation with the AI provider. It is used by all the other ai tasks
 func (svc *Service) continueChat(ctx context.Context, req *provider.ChatRequest) ([]*provider.BotMessage, error) {
 	prov, ok := svc.providers[req.Provider]
 	if !ok {
@@ -254,6 +257,8 @@ func (svc *Service) continueChat(ctx context.Context, req *provider.ChatRequest)
 	return messages, nil
 }
 
+// generateAvatar generates an avatar for the bot using the specified provider.
+// it's a helper function to resize and encode images returned by llm providers
 func (svc *Service) generateAvatar(ctx context.Context, provider, prompt string) ([]byte, error) {
 	prov, ok := svc.providers[provider]
 	if !ok {

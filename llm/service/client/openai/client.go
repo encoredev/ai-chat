@@ -9,13 +9,17 @@ import (
 
 	"encore.app/llm/provider"
 	"encore.app/llm/provider/openai"
-	"encore.app/llm/service/clients"
+	"encore.app/llm/service/client"
 )
 
-func NewClient() *Client {
-	return &Client{}
+func NewClient(ctx context.Context) (*Client, bool) {
+	if openai.Ping(ctx) != nil {
+		return nil, false
+	}
+	return &Client{}, true
 }
 
+// Client wraps the openai service endpoints to implement the llm client interface.
 type Client struct{}
 
 func (p Client) ContinueChat(ctx context.Context, req *provider.ChatRequest) (string, error) {

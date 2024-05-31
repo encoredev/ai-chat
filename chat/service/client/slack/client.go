@@ -8,14 +8,18 @@ import (
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider/slack"
-	"encore.app/chat/service/clients"
+	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 )
 
-func NewClient() *Client {
-	return &Client{}
+func NewClient(ctx context.Context) (*Client, bool) {
+	if slack.Ping(ctx) != nil {
+		return nil, false
+	}
+	return &Client{}, true
 }
 
+// Client wraps the slack service endpoints to implement the chat client interface.
 type Client struct{}
 
 func (s *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error) {
@@ -30,7 +34,7 @@ func (s *Client) GetUser(ctx context.Context, id client.UserID) (*client.User, e
 	return slack.GetUser(ctx, id)
 }
 
-func (s *Client) GetChannel(ctx context.Context, id client.ChannelID) client.Channel {
+func (s *Client) GetChannelClient(ctx context.Context, id client.ChannelID) client.ChannelClient {
 	return &Channel{
 		channelID: id,
 	}
@@ -69,6 +73,6 @@ func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {
 }
 
 var (
-	_ client.Client  = (*Client)(nil)
-	_ client.Channel = (*Channel)(nil)
+	_ client.Client        = (*Client)(nil)
+	_ client.ChannelClient = (*Channel)(nil)
 )

@@ -10,12 +10,14 @@ import (
 	"encore.dev/types/uuid"
 )
 
+// BotMessage is a response generated for a bot by the LLM.
 type BotMessage struct {
 	Bot     *botdb.Bot
 	Content string
 	Time    time.Time
 }
 
+// ChatRequest is a request to the LLM to process the conversations in a chat channel
 type ChatRequest struct {
 	Bots      []*botdb.Bot
 	Users     []*chatdb.User
@@ -24,6 +26,7 @@ type ChatRequest struct {
 	SystemMsg string
 	Provider  string
 
+	// Cached maps to avoid repeated lookups
 	botsByID  map[uuid.UUID]*botdb.Bot
 	usersByID map[uuid.UUID]*chatdb.User
 }
@@ -45,11 +48,13 @@ func (req *ChatRequest) Format(msg *chatdb.Message) string {
 	return fmt.Sprintf("%s %s/%s: %s", msg.Timestamp.Format("01-02 15:04"), req.Channel.Name, name, msg.Content)
 }
 
+// FromBot returns true if the message was sent by a bot.
 func (req *ChatRequest) FromBot(msg *chatdb.Message) bool {
 	_, bot := req.UserForMessage(msg)
 	return bot != nil
 }
 
+// UserForMessage returns the user and bot associated with a message.
 func (req *ChatRequest) UserForMessage(msg *chatdb.Message) (*chatdb.User, *botdb.Bot) {
 	user, ok := req.UsersByID()[msg.AuthorID]
 	if !ok {
@@ -65,6 +70,7 @@ func (req *ChatRequest) UserForMessage(msg *chatdb.Message) (*chatdb.User, *botd
 	return user, bot
 }
 
+// BotsByID returns a map of bots by ID and caches the result.
 func (req *ChatRequest) BotsByID() map[uuid.UUID]*botdb.Bot {
 	if req.botsByID != nil {
 		return req.botsByID
@@ -76,6 +82,7 @@ func (req *ChatRequest) BotsByID() map[uuid.UUID]*botdb.Bot {
 	return req.botsByID
 }
 
+// UsersByID returns a map of users by ID and caches the result.
 func (req *ChatRequest) UsersByID() map[uuid.UUID]*chatdb.User {
 	if req.usersByID != nil {
 		return req.usersByID

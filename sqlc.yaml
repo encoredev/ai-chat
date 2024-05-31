@@ -31,21 +31,6 @@ sql:
         output_models_file_name:       "sqlc_models.go"
         output_querier_file_name:      "sqlc_querier.go"
   - engine: "postgresql"
-    queries: "chat/provider/slack/db/queries"
-    schema: "chat/provider/slack/db/migrations"
-    gen:
-      go:
-        package:                       "db"
-        out:                           "chat/provider/slack/db"
-        sql_package:                   database/sql
-        emit_empty_slices:             true
-        emit_methods_with_db_argument: true
-        emit_result_struct_pointers:   true
-        emit_interface:                true
-        output_db_file_name:           "sqlc_db.go"
-        output_models_file_name:       "sqlc_models.go"
-        output_querier_file_name:      "sqlc_querier.go"
-  - engine: "postgresql"
     queries: "chat/service/db/queries"
     schema: "chat/service/db/migrations"
     gen:

@@ -4,7 +4,6 @@ package slack
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -17,11 +16,9 @@ import (
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
-	"encore.app/chat/provider/slack/db"
-	"encore.app/chat/service/clients"
+	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 	"encore.dev/rlog"
-	"encore.dev/storage/sqldb"
 	"encore.dev/types/uuid"
 )
 
@@ -30,22 +27,25 @@ const (
 	BotMessageEventType = "bot_message"
 )
 
-var slackdb = sqldb.NewDatabase("slack", sqldb.DatabaseConfig{
-	Migrations: "./db/migrations",
-})
-
 // This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
 var secrets struct {
 	SlackToken string
 }
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct {
 	client *slack.Client
 	botID  string
 }
 
+// initService initializes the Slack service by creating a client and retrieving the bot ID.
 func initService() (*Service, error) {
+	// Don't try to initialize the service if the slack token is not set
+	if secrets.SlackToken == "" {
+		return nil, nil
+	}
 	client := slack.New(secrets.SlackToken)
 	resp, err := client.AuthTest()
 	if err != nil {
@@ -55,6 +55,15 @@ func initService() (*Service, error) {
 		client: client,
 		botID:  resp.BotID,
 	}, nil
+}
+
+// Ping returns an error if the service is not available.
+// encore:api private
+func (p *Service) Ping(ctx context.Context) error {
+	if p == nil {
+		return errors.New("Slack service is not available. Add SlackToken secret to enable it.")
+	}
+	return nil
 }
 
 type SlackEvent struct {
@@ -68,6 +77,11 @@ type ChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
 
+// WebhookMessage handles incoming slack messages and publishes them to the message topic.
+// The webhook URL must be set in the slack app configuration.
+// To test it locally, you can use the ngrok integration in the proxy package which automatically spins up
+// a tunnel to your local machine. Learn more: https://ngrok.com/
+//
 //encore:api private path=/slack/message
 func (svc *Service) WebhookMessage(ctx context.Context, req *SlackEvent) (*ChallengeResponse, error) {
 	switch req.Type {
@@ -76,14 +90,16 @@ func (svc *Service) WebhookMessage(ctx context.Context, req *SlackEvent) (*Chall
 			Challenge: req.Challenge,
 		}, nil
 	case "event_callback":
-		msg, err := svc.ParseMessage(req.Event)
+		discordMsg := Message{}
+		err := json.Unmarshal(req.Event, &discordMsg)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unmarshal message")
 		}
+		msg := svc.toProviderMessage(discordMsg.Msg, discordMsg.Channel)
+		// Some messages we just want to ignore
 		if msg == nil {
 			return nil, nil
 		}
-
 		_, err = provider.MessageTopic.Publish(ctx, msg)
 		if err != nil {
 			return nil, errors.Wrap(err, "publish message")
@@ -96,6 +112,8 @@ type ListChannelsResponse struct {
 	Channels []client.ChannelInfo
 }
 
+// ListChannels returns a list of channels in the slack workspace.
+//
 //encore:api private method=GET path=/slack/channels
 func (s *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, error) {
 	resp, _, err := s.client.GetConversationsContext(ctx, &slack.GetConversationsParameters{
@@ -116,6 +134,8 @@ func (s *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, erro
 	return &ListChannelsResponse{Channels: rtn}, nil
 }
 
+// GetUser returns a user by ID.
+//
 //encore:api private method=GET path=/slack/users/:userID
 func (s *Service) GetUser(ctx context.Context, userID string) (*client.User, error) {
 	if strings.HasPrefix(userID, "B") {
@@ -141,35 +161,27 @@ type Message struct {
 	Blocks json.RawMessage `json:"blocks"`
 }
 
-func (s *Service) ParseMessage(data json.RawMessage) (*client.Message, error) {
-	msg := Message{}
-	err := json.Unmarshal(data, &msg)
-	if err != nil {
-		return nil, err
-	}
-	return s.toProviderMessage(msg.Msg, msg.Channel), nil
-
-}
-
+// LeaveChannel leaves a slack channel.
+//
 //encore:api private method=POST path=/slack/channels/:channelID/leave
 func (s *Service) LeaveChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	_, err := s.client.LeaveConversationContext(ctx, channelID)
 	if err != nil {
 		return errors.Wrap(err, "leave conversation")
 	}
-	_, err = db.New().DeleteAvatar(ctx, slackdb.Stdlib(), bot.Name)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return errors.Wrap(err, "leave conversation")
-	}
 	return nil
 }
 
+// JoinChannel joins a slack channel.
+//
 //encore:api private method=POST path=/slack/channels/:channelID/join
 func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	_, _, _, err := s.client.JoinConversationContext(ctx, channelID)
 	return errors.Wrap(err, "join conversation")
 }
 
+// ChannelInfo returns information about a slack channel.
+//
 //encore:api private method=GET path=/slack/channels/:channelID
 func (s *Service) ChannelInfo(ctx context.Context, channelID string) (client.ChannelInfo, error) {
 	resp, err := s.client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
@@ -190,6 +202,8 @@ type SendMessageRequest struct {
 	Bot     *botdb.Bot
 }
 
+// SendMessage sends a message to a slack channel.
+//
 //encore:api private method=POST path=/slack/channels/:channelID/messages
 func (s *Service) SendMessage(ctx context.Context, channelID string, req *SendMessageRequest) error {
 	avatar := req.Bot.GetAvatarURL()
@@ -208,11 +222,6 @@ func (s *Service) SendMessage(ctx context.Context, channelID string, req *SendMe
 	return errors.Wrap(err, "post message")
 }
 
-var acceptedSubTypes = []string{
-	"",
-	"bot_message",
-}
-
 type ListMessagesResponse struct {
 	Messages []*client.Message
 }
@@ -221,6 +230,8 @@ type ListMessagesRequest struct {
 	FromTimestamp string
 }
 
+// ListMessages returns a list of messages in a slack channel.
+//
 //encore:api private method=GET path=/slack/channels/:channelID/messages
 func (s *Service) ListMessages(ctx context.Context, channelID string, req *ListMessagesRequest) (*ListMessagesResponse, error) {
 	resp, err := s.client.GetConversationHistoryContext(ctx, &slack.GetConversationHistoryParameters{
@@ -242,8 +253,10 @@ func (s *Service) ListMessages(ctx context.Context, channelID string, req *ListM
 	return &ListMessagesResponse{Messages: rtn}, nil
 }
 
+// toProviderMessage converts a slack message to a provider message.
 func (svc *Service) toProviderMessage(msg slack.Msg, channel client.ChannelID) *client.Message {
-	if msg.Text == "" || msg.Type != "message" || msg.Hidden || !slices.Contains(acceptedSubTypes, msg.SubType) {
+	if msg.Text == "" || msg.Type != "message" || msg.Hidden ||
+		!slices.Contains([]string{"", "bot_message"}, msg.SubType) {
 		return nil
 	}
 	author := client.User{

@@ -12,6 +12,7 @@ import (
 	"encore.dev/config"
 )
 
+// This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
 var secrets struct {
 	OpenAIKey string
 }
@@ -24,18 +25,34 @@ type Config struct {
 	TopP        config.Float32
 }
 
+// This uses Encore Configuration, learn more: https://encore.dev/docs/develop/config
 var cfg = config.Load[*Config]()
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct {
 	client *openai.Client
 }
 
+// initService initializes the OpenAI service by creating a client.
 func initService() (*Service, error) {
+	if secrets.OpenAIKey == "" {
+		return nil, nil
+	}
 	svc := &Service{
 		client: openai.NewClient(secrets.OpenAIKey),
 	}
 	return svc, nil
+}
+
+// Ping returns an error if the service is not available.
+// encore:api private
+func (p *Service) Ping(ctx context.Context) error {
+	if p == nil {
+		return errors.New("OpenAI service is not available. Add OpenAIKey secret to enable it.")
+	}
+	return nil
 }
 
 type GenerateAvatarRequest struct {
@@ -46,6 +63,8 @@ type GenerateAvatarResponse struct {
 	Image []byte
 }
 
+// GenerateAvatar generates an avatar image based on the given prompt. The model is configurable in the config.
+//
 //encore:api private method=POST path=/openai/generate-avatar
 func (p *Service) GenerateAvatar(ctx context.Context, req *GenerateAvatarRequest) (*GenerateAvatarResponse, error) {
 	resp, err := p.client.CreateImage(ctx, openai.ImageRequest{
@@ -74,6 +93,8 @@ type AskResponse struct {
 	Message string
 }
 
+// Ask sends a single message to the OpenAI chat model and returns the response.
+//
 //encore:api private method=POST path=/openai/ask
 func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error) {
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -99,6 +120,8 @@ type ContinueChatResponse struct {
 	Message string
 }
 
+// ContinueChat continues a chat conversation with the OpenAI chat model.
+//
 //encore:api private method=POST path=/openai/continue-chat
 func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*ContinueChatResponse, error) {
 	var messages []openai.ChatCompletionMessage

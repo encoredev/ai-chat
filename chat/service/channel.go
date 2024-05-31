@@ -1,6 +1,3 @@
-// The chat service is the main coordinator. It connects the chat providers with the bot service and the LLM service.
-// It forwards messages from chat providers to the LLM service and vice versa.
-// It uses the bot service to retrieve bot profiles to forward to the LLM service.
 package chat
 
 import (
@@ -10,40 +7,12 @@ import (
 
 	"encore.app/bot"
 	botdb "encore.app/bot/db"
-	"encore.app/chat/service/clients"
-	"encore.app/chat/service/clients/discord"
-	"encore.app/chat/service/clients/slack"
+	"encore.app/chat/service/client"
 	"encore.app/chat/service/db"
 	"encore.app/llm/service"
 	"encore.dev/rlog"
-	"encore.dev/storage/sqldb"
 	"encore.dev/types/uuid"
 )
-
-var chatdb = sqldb.NewDatabase("chat", sqldb.DatabaseConfig{
-	Migrations: "./db/migrations",
-})
-
-//encore:service
-type Service struct {
-	providers map[db.Provider]client.Client
-}
-
-// initService is the constructor for the chat service. It initializes the chat providers and loads all channels.
-func initService() (*Service, error) {
-	ctx := context.Background()
-	svc := &Service{
-		providers: map[db.Provider]client.Client{
-			db.ProviderDiscord: discord.NewClient(),
-			db.ProviderSlack:   slack.NewClient(),
-		},
-	}
-	err := svc.initChannels(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "init channels")
-	}
-	return svc, nil
-}
 
 type ListChannelsResponse struct {
 	Channels []*db.Channel
@@ -109,7 +78,7 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	if !ok {
 		return errors.Newf("unknown provider %v", c.Provider)
 	}
-	err = prov.GetChannel(ctx, c.ProviderID).Join(ctx, b)
+	err = prov.GetChannelClient(ctx, c.ProviderID).Join(ctx, b)
 	if err != nil {
 		return errors.Wrap(err, "join channel")
 	}

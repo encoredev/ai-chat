@@ -17,10 +17,13 @@ import (
 
 type BotID = uuid.UUID
 
+// This uses Encore's declarative database , learn more: https://encore.dev/docs/primitives/databases
 var botdb = sqldb.NewDatabase("bot", sqldb.DatabaseConfig{
 	Migrations: "./db/migrations",
 })
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct{}
 
@@ -30,6 +33,9 @@ type CreateBotRequest struct {
 	LLM    string `json:"llm"`
 }
 
+// Create creates a new bot with the given name, prompt, and LLM provider. It will generate a profile description
+// and an avatar (if the chosen llm provider supports it).
+//
 //encore:api public method=POST path=/bots
 func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*db.Bot, error) {
 	resp, err := llm.GenerateBotProfile(ctx, &llm.GenerateBotProfileRequest{
@@ -57,6 +63,8 @@ type ListBotRequest struct {
 	IDs []uuid.UUID `json:"ids"`
 }
 
+// List returns a list of bots. If IDs is empty, it will return all bots.
+//
 //encore:api public method=GET path=/bots
 func (svc *Service) List(ctx context.Context, req *ListBotRequest) (*Bots, error) {
 	bots, err := func() ([]*db.Bot, error) {
@@ -71,16 +79,22 @@ func (svc *Service) List(ctx context.Context, req *ListBotRequest) (*Bots, error
 	return &Bots{Bots: bots}, nil
 }
 
+// Get returns a bot by ID.
+//
 //encore:api public method=GET path=/bots/:id
 func (svc *Service) Get(ctx context.Context, id uuid.UUID) (*db.Bot, error) {
 	return db.New().GetBot(ctx, botdb.Stdlib(), id)
 }
 
+// Delete deletes a bot by ID.
+//
 //encore:api public method=DELETE path=/bots/:id
 func (svc *Service) Delete(ctx context.Context, id uuid.UUID) (*db.Bot, error) {
 	return db.New().DeleteBot(ctx, botdb.Stdlib(), id)
 }
 
+// Avatar returns the avatar image of a bot by ID.
+//
 //encore:api public raw path=/bots/:id/avatar
 func (*Service) Avatar(w http.ResponseWriter, req *http.Request) {
 	q := db.New()
@@ -88,7 +102,7 @@ func (*Service) Avatar(w http.ResponseWriter, req *http.Request) {
 	id = strings.TrimSuffix(id, "/avatar")
 	uid, err := uuid.FromString(id)
 	if err != nil {
-		http.Error(w, "Invalid ProviderID", http.StatusBadRequest)
+		http.Error(w, "Invalid bot uuid", http.StatusBadRequest)
 		return
 	}
 	bot, err := q.GetBot(req.Context(), botdb.Stdlib(), uid)

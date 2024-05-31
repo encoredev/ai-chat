@@ -21,49 +21,61 @@ import (
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
 	"encore.app/chat/provider/discord/db"
-	"encore.app/chat/service/clients"
+	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 	"encore.dev/rlog"
 	"encore.dev/storage/sqldb"
 )
 
+// This uses Encore's declarative database , learn more: https://encore.dev/docs/primitives/databases
 var discorddb = sqldb.NewDatabase("discord", sqldb.DatabaseConfig{
 	Migrations: "./db/migrations",
 })
 
+// This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
 var secrets struct {
 	DiscordToken string
 }
 
+// This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
+//
 //encore:service
 type Service struct {
 	client *discord.Session
 }
 
-func (s *Service) handleMessage(ctx context.Context, msg *discord.MessageCreate) error {
-	message := ToProviderMessage(msg.Message)
-	if message == nil {
-		return nil
-	}
-	_, err := provider.MessageTopic.Publish(ctx, message)
-	return errors.Wrap(err, "publish message")
-}
-
+// initService initializes the Discord service by creating a client and subscribing to messages.
 func initService() (*Service, error) {
+	// Don't try to initialize the service if the discord token is not set
+	if secrets.DiscordToken == "" {
+		return nil, nil
+	}
 	client, err := discord.New("Bot " + secrets.DiscordToken)
 	if err != nil {
 		return nil, err
 	}
 	svc := &Service{client: client}
-	err = svc.subscribeToMessages(context.Background(), svc.handleMessage)
+	err = svc.subscribeToMessages(context.Background(), func(ctx context.Context, msg *discord.MessageCreate) error {
+		message := toProviderMessage(msg.Message)
+		if message == nil {
+			return nil
+		}
+		_, err := provider.MessageTopic.Publish(ctx, message)
+		return errors.Wrap(err, "publish message")
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "subscribe to messages")
 	}
 	return svc, nil
 }
 
-type ListChannelsResponse struct {
-	Channels []client.ChannelInfo
+// Ping returns an error if the Discord service is not available.
+// encore:api private
+func (p *Service) Ping(ctx context.Context) error {
+	if p == nil {
+		return errors.New("Discord service is not available. Add DiscordToken secret to enable it.")
+	}
+	return nil
 }
 
 type DiscordAuthRequest struct {
@@ -72,12 +84,21 @@ type DiscordAuthRequest struct {
 	Permissions int64  `json:"permissions"`
 }
 
+// AuthURL is a public API which can be used as a forward URL for Discord OAuth. It's not implemented but
+// kept here as an example of how to integrate oauth with Discord.
+//
 //encore:api public method=GET path=/discord/oauth
 func (p *Service) AuthURL(ctx context.Context, req *DiscordAuthRequest) error {
 	// Encrypt and store the token somewhere
 	return nil
 }
 
+type ListChannelsResponse struct {
+	Channels []client.ChannelInfo
+}
+
+// ListChannels returns a list of channels in all the guilds the bot is a part of.
+//
 //encore:api private method=GET path=/discord/channels
 func (p *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, error) {
 	guilds, err := p.client.UserGuilds(100, "", "", false)
@@ -101,6 +122,7 @@ func (p *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, erro
 	return &ListChannelsResponse{Channels: channelInfos}, nil
 }
 
+// subscribeToMessages subscribes to messages from the Discord client and publishes them to the message topic.
 func (p *Service) subscribeToMessages(ctx context.Context, fn func(ctx context.Context, msg *discord.MessageCreate) error) error {
 	p.client.AddHandler(func(sess *discord.Session, msg *discord.MessageCreate) {
 		err := fn(ctx, msg)
@@ -122,11 +144,14 @@ func (p *Service) subscribeToMessages(ctx context.Context, fn func(ctx context.C
 		sc := make(chan os.Signal, 1)
 		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 		<-sc
+		rlog.Info("Discord subscription is shutting down.")
 		_ = p.client.Close()
 	}()
 	return nil
 }
 
+// GetUser returns a user by ID.
+//
 //encore:api private method=GET path=/discord/users/:userID
 func (p *Service) GetUser(ctx context.Context, userID string) (*client.User, error) {
 	_, username, isBot := strings.Cut(userID, ":")
@@ -146,6 +171,8 @@ func (p *Service) GetUser(ctx context.Context, userID string) (*client.User, err
 	}, nil
 }
 
+// LeaveChannel leaves a channel by deleting the webhook associated with the bot.
+//
 //encore:api private method=POST path=/discord/channels/:channelID/leave
 func (c *Service) LeaveChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	q := db.New()
@@ -167,6 +194,8 @@ func (c *Service) LeaveChannel(ctx context.Context, channelID string, bot *botdb
 	return nil
 }
 
+// generateAvatarDataURI generates a data URI for the avatar image. The image is resized to 128x128 if it's larger.
+// The data URI is a base64 encoded string of the image.
 func generateAvatarDataURI(data []byte) (string, error) {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
@@ -185,6 +214,9 @@ func generateAvatarDataURI(data []byte) (string, error) {
 	return "data:image/png;base64," + b64Data, nil
 }
 
+// JoinChannel joins a channel by creating a webhook for the bot. We use webhooks instead of bots directly
+// to be able to customize the bot's name and avatar.
+//
 //encore:api private method=POST path=/discord/channels/:channelID/join
 func (c *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	var err error
@@ -231,6 +263,8 @@ type SendMessageRequest struct {
 	Bot     *botdb.Bot
 }
 
+// SendMessage sends a message to a channel using the bot's webhook.
+//
 //encore:api private method=POST path=/discord/channels/:channelID/messages
 func (c *Service) SendMessage(ctx context.Context, channelID string, req *SendMessageRequest) error {
 	webhook, err := db.New().GetWebhookForBot(ctx, discorddb.Stdlib(), db.GetWebhookForBotParams{
@@ -247,7 +281,8 @@ func (c *Service) SendMessage(ctx context.Context, channelID string, req *SendMe
 	return errors.Wrap(err, "error sending message")
 }
 
-func ToProviderMessage(msg *discord.Message) *client.Message {
+// toProviderMessage converts a Discord message to the generic provider message.
+func toProviderMessage(msg *discord.Message) *client.Message {
 	if msg.Content == "" || msg.Type != discord.MessageTypeDefault {
 		return nil
 	}
@@ -280,6 +315,8 @@ type ListMessagesResponse struct {
 	Messages []*client.Message
 }
 
+// ListMessages returns a list of messages in a channel.
+//
 //encore:api private method=GET path=/discord/channels/:channelID/messages
 func (c *Service) ListMessages(ctx context.Context, channelID string, req *ListMessagesRequest) (*ListMessagesResponse, error) {
 	msgs, err := c.client.ChannelMessages(channelID, 100, "", req.FromMessageID, "")
@@ -288,13 +325,15 @@ func (c *Service) ListMessages(ctx context.Context, channelID string, req *ListM
 	}
 	var messages []*client.Message
 	for i := len(msgs) - 1; i >= 0; i-- {
-		if msg := ToProviderMessage(msgs[i]); msg != nil {
+		if msg := toProviderMessage(msgs[i]); msg != nil {
 			messages = append(messages, msg)
 		}
 	}
 	return &ListMessagesResponse{Messages: messages}, nil
 }
 
+// ChannelInfo returns information about a channel.
+//
 //encore:api private method=GET path=/discord/channels/:channelID/info
 func (c *Service) ChannelInfo(ctx context.Context, channelID string) (client.ChannelInfo, error) {
 	resp, err := c.client.Channel(channelID)
