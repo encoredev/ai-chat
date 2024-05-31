@@ -7,6 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	botdb "encore.app/bot/db"
+	"encore.app/chat/provider"
 	"encore.app/chat/provider/slack"
 	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
@@ -45,7 +46,7 @@ type Channel struct {
 }
 
 func (c *Channel) Send(ctx context.Context, bot *botdb.Bot, content string) error {
-	return slack.SendMessage(ctx, c.channelID, &slack.SendMessageRequest{Content: content, Bot: bot})
+	return slack.SendMessage(ctx, c.channelID, &provider.SendMessageRequest{Content: content, Bot: bot})
 }
 
 func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*client.Message, error) {
@@ -53,7 +54,7 @@ func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*cl
 	if from != nil {
 		fromTimestamp = fmt.Sprintf("%f", float64(from.Timestamp.UnixMicro()/1e6))
 	}
-	resp, err := slack.ListMessages(ctx, c.channelID, &slack.ListMessagesRequest{FromTimestamp: fromTimestamp})
+	resp, err := slack.ListMessages(ctx, c.channelID, &provider.ListMessagesRequest{FromTimestamp: fromTimestamp})
 	if err != nil {
 		return nil, errors.Wrap(err, "list messages")
 	}

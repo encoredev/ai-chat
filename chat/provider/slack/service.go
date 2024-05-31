@@ -108,14 +108,10 @@ func (svc *Service) WebhookMessage(ctx context.Context, req *SlackEvent) (*Chall
 	return nil, nil
 }
 
-type ListChannelsResponse struct {
-	Channels []client.ChannelInfo
-}
-
 // ListChannels returns a list of channels in the slack workspace.
 //
 //encore:api private method=GET path=/slack/channels
-func (s *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, error) {
+func (s *Service) ListChannels(ctx context.Context) (*provider.ListChannelsResponse, error) {
 	resp, _, err := s.client.GetConversationsContext(ctx, &slack.GetConversationsParameters{
 		Types: []string{"public_channel", "private_channel", "mpim", "im"},
 		Limit: 1000,
@@ -131,7 +127,7 @@ func (s *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, erro
 			Name:     channel.Name,
 		})
 	}
-	return &ListChannelsResponse{Channels: rtn}, nil
+	return &provider.ListChannelsResponse{Channels: rtn}, nil
 }
 
 // GetUser returns a user by ID.
@@ -197,15 +193,10 @@ func (s *Service) ChannelInfo(ctx context.Context, channelID string) (client.Cha
 	}, nil
 }
 
-type SendMessageRequest struct {
-	Content string
-	Bot     *botdb.Bot
-}
-
 // SendMessage sends a message to a slack channel.
 //
 //encore:api private method=POST path=/slack/channels/:channelID/messages
-func (s *Service) SendMessage(ctx context.Context, channelID string, req *SendMessageRequest) error {
+func (s *Service) SendMessage(ctx context.Context, channelID string, req *provider.SendMessageRequest) error {
 	avatar := req.Bot.GetAvatarURL()
 	_, _, err := s.client.PostMessageContext(
 		ctx,
@@ -222,18 +213,10 @@ func (s *Service) SendMessage(ctx context.Context, channelID string, req *SendMe
 	return errors.Wrap(err, "post message")
 }
 
-type ListMessagesResponse struct {
-	Messages []*client.Message
-}
-
-type ListMessagesRequest struct {
-	FromTimestamp string
-}
-
 // ListMessages returns a list of messages in a slack channel.
 //
 //encore:api private method=GET path=/slack/channels/:channelID/messages
-func (s *Service) ListMessages(ctx context.Context, channelID string, req *ListMessagesRequest) (*ListMessagesResponse, error) {
+func (s *Service) ListMessages(ctx context.Context, channelID string, req *provider.ListMessagesRequest) (*provider.ListMessagesResponse, error) {
 	resp, err := s.client.GetConversationHistoryContext(ctx, &slack.GetConversationHistoryParameters{
 		ChannelID: channelID,
 		Oldest:    req.FromTimestamp,
@@ -250,7 +233,7 @@ func (s *Service) ListMessages(ctx context.Context, channelID string, req *ListM
 		}
 		rtn = append(rtn, msg)
 	}
-	return &ListMessagesResponse{Messages: rtn}, nil
+	return &provider.ListMessagesResponse{Messages: rtn}, nil
 }
 
 // toProviderMessage converts a slack message to a provider message.
@@ -281,7 +264,7 @@ func (svc *Service) toProviderMessage(msg slack.Msg, channel client.ChannelID) *
 	return &client.Message{
 		Provider:   chatdb.ProviderSlack,
 		ProviderID: msg.ClientMsgID,
-		Channel:    channel,
+		ChannelID:  channel,
 		Author:     author,
 		Content:    msg.Text,
 		Time:       time.UnixMicro(int64(ts * 1e6)).UTC(),

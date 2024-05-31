@@ -31,6 +31,10 @@ func (svc *Service) GetChannel(ctx context.Context, id uuid.UUID) (*db.Channel, 
 
 }
 
+type ListChannelRequest struct {
+	Provider string `json:"provider"`
+}
+
 type ListChannelResponse struct {
 	Channels []*db.Channel
 }
@@ -38,8 +42,15 @@ type ListChannelResponse struct {
 // ListChannels returns a list of all channels from all providers.
 //
 //encore:api public method=GET path=/chat/channels
-func (svc *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, error) {
+func (svc *Service) ListChannels(ctx context.Context, req *ListChannelRequest) (*ListChannelsResponse, error) {
 	queries := db.New()
+	if req.Provider != "" {
+		channels, err := queries.ListChannelsByProvider(ctx, chatdb.Stdlib(), db.Provider(req.Provider))
+		if err != nil {
+			return nil, errors.Wrap(err, "list channels by provider")
+		}
+		return &ListChannelsResponse{Channels: channels}, nil
+	}
 	channels, err := queries.ListChannels(ctx, chatdb.Stdlib())
 	if err != nil {
 		return nil, errors.Wrap(err, "list channels")

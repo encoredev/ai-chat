@@ -17,7 +17,7 @@ type ChannelID = string
 type Message struct {
 	Provider   db.Provider
 	ProviderID string
-	Channel    ChannelID
+	ChannelID  ChannelID
 	Author     User
 	Content    string
 	Time       time.Time

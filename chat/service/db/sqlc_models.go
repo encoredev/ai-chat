@@ -16,9 +16,10 @@ import (
 type Provider string
 
 const (
-	ProviderSlack   Provider = "slack"
-	ProviderDiscord Provider = "discord"
-	ProviderAdmin   Provider = "admin"
+	ProviderSlack      Provider = "slack"
+	ProviderDiscord    Provider = "discord"
+	ProviderAdmin      Provider = "admin"
+	ProviderEncorechat Provider = "encorechat"
 )
 
 func (e *Provider) Scan(src interface{}) error {

@@ -1,19 +1,17 @@
-package discord
+package encorechat
 
 import (
 	"context"
 
-	"github.com/cockroachdb/errors"
-
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
-	"encore.app/chat/provider/discord"
+	"encore.app/chat/provider/encorechat"
 	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 )
 
 func NewClient(ctx context.Context) (*Client, bool) {
-	if discord.Ping(ctx) != nil {
+	if err := encorechat.Ping(ctx); err != nil {
 		return nil, false
 	}
 	return &Client{}, true
@@ -23,15 +21,14 @@ func NewClient(ctx context.Context) (*Client, bool) {
 type Client struct{}
 
 func (p *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error) {
-	resp, err := discord.ListChannels(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "list channels")
-	}
-	return resp.Channels, nil
+	return nil, nil
 }
 
 func (p *Client) GetUser(ctx context.Context, id client.UserID) (*client.User, error) {
-	return discord.GetUser(ctx, id)
+	return &client.User{
+		ID:   id,
+		Name: id,
+	}, nil
 }
 
 func (p *Client) GetChannelClient(ctx context.Context, id client.ChannelID) client.ChannelClient {
@@ -47,31 +44,27 @@ type Channel struct {
 }
 
 func (c *Channel) Send(ctx context.Context, bot *botdb.Bot, content string) error {
-	return discord.SendMessage(ctx, c.channelID, &provider.SendMessageRequest{Content: content, Bot: bot})
+	return encorechat.SendMessage(ctx, c.channelID, &provider.SendMessageRequest{Content: content, Bot: bot})
 }
 
 func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*client.Message, error) {
-	fromID := ""
-	if from != nil {
-		fromID = from.ProviderID
-	}
-	resp, err := discord.ListMessages(ctx, c.channelID, &provider.ListMessagesRequest{FromMessageID: fromID})
-	if err != nil {
-		return nil, errors.Wrap(err, "list messages")
-	}
-	return resp.Messages, nil
+	return nil, nil
 }
 
 func (c *Channel) Info(ctx context.Context) (client.ChannelInfo, error) {
-	return discord.ChannelInfo(ctx, c.channelID)
+	return client.ChannelInfo{
+		Provider: chatdb.ProviderEncorechat,
+		ID:       c.channelID,
+		Name:     c.channelID,
+	}, nil
 }
 
 func (c *Channel) Join(ctx context.Context, bot *botdb.Bot) error {
-	return discord.JoinChannel(ctx, c.channelID, bot)
+	return nil
 }
 
 func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {
-	return discord.LeaveChannel(ctx, c.channelID, bot)
+	return nil
 }
 
 var (

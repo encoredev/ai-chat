@@ -93,14 +93,10 @@ func (p *Service) AuthURL(ctx context.Context, req *DiscordAuthRequest) error {
 	return nil
 }
 
-type ListChannelsResponse struct {
-	Channels []client.ChannelInfo
-}
-
 // ListChannels returns a list of channels in all the guilds the bot is a part of.
 //
 //encore:api private method=GET path=/discord/channels
-func (p *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, error) {
+func (p *Service) ListChannels(ctx context.Context) (*provider.ListChannelsResponse, error) {
 	guilds, err := p.client.UserGuilds(100, "", "", false)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting guilds")
@@ -119,7 +115,7 @@ func (p *Service) ListChannels(ctx context.Context) (*ListChannelsResponse, erro
 			})
 		}
 	}
-	return &ListChannelsResponse{Channels: channelInfos}, nil
+	return &provider.ListChannelsResponse{Channels: channelInfos}, nil
 }
 
 // subscribeToMessages subscribes to messages from the Discord client and publishes them to the message topic.
@@ -258,15 +254,10 @@ func (c *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.
 	return nil
 }
 
-type SendMessageRequest struct {
-	Content string
-	Bot     *botdb.Bot
-}
-
 // SendMessage sends a message to a channel using the bot's webhook.
 //
 //encore:api private method=POST path=/discord/channels/:channelID/messages
-func (c *Service) SendMessage(ctx context.Context, channelID string, req *SendMessageRequest) error {
+func (c *Service) SendMessage(ctx context.Context, channelID string, req *provider.SendMessageRequest) error {
 	webhook, err := db.New().GetWebhookForBot(ctx, discorddb.Stdlib(), db.GetWebhookForBotParams{
 		Channel: channelID,
 		BotID:   req.Bot.ID,
@@ -300,25 +291,17 @@ func toProviderMessage(msg *discord.Message) *client.Message {
 	return &client.Message{
 		Provider:   chatdb.ProviderDiscord,
 		ProviderID: msg.ID,
-		Channel:    msg.ChannelID,
+		ChannelID:  msg.ChannelID,
 		Author:     author,
 		Content:    msg.Content,
 		Time:       msg.Timestamp.UTC(),
 	}
 }
 
-type ListMessagesRequest struct {
-	FromMessageID string
-}
-
-type ListMessagesResponse struct {
-	Messages []*client.Message
-}
-
 // ListMessages returns a list of messages in a channel.
 //
 //encore:api private method=GET path=/discord/channels/:channelID/messages
-func (c *Service) ListMessages(ctx context.Context, channelID string, req *ListMessagesRequest) (*ListMessagesResponse, error) {
+func (c *Service) ListMessages(ctx context.Context, channelID string, req *provider.ListMessagesRequest) (*provider.ListMessagesResponse, error) {
 	msgs, err := c.client.ChannelMessages(channelID, 100, "", req.FromMessageID, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting messages")
@@ -329,7 +312,7 @@ func (c *Service) ListMessages(ctx context.Context, channelID string, req *ListM
 			messages = append(messages, msg)
 		}
 	}
-	return &ListMessagesResponse{Messages: messages}, nil
+	return &provider.ListMessagesResponse{Messages: messages}, nil
 }
 
 // ChannelInfo returns information about a channel.

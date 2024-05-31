@@ -223,9 +223,9 @@ func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.
 			}
 			userByID[msg.Author.ID] = author
 		}
-		channel, ok := channelByID[msg.Channel]
+		channel, ok := channelByID[msg.ChannelID]
 		if !ok {
-			cInfo, err := prov.GetChannelClient(ctx, msg.Channel).Info(ctx)
+			cInfo, err := prov.GetChannelClient(ctx, msg.ChannelID).Info(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "get channel info")
 			}

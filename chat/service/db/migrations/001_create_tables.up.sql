@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS message (
 );
 
 -- create provider enum
-CREATE TYPE provider AS ENUM ('slack', 'discord', 'admin');
+CREATE TYPE provider AS ENUM ('slack', 'discord', 'admin', 'encorechat');
 
 CREATE TABLE IF NOT EXISTS "user" (
    id uuid PRIMARY KEY,
