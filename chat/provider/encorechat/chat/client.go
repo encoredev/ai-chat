@@ -1,9 +1,10 @@
 package chat
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -33,18 +34,31 @@ var (
 	space   = []byte{' '}
 )
 
+type ClientMessage struct {
+	Type           string
+	UserId         string
+	ConversationId string
+	Content        string
+}
+
 // Client is a middleman between the websocket connection and the svc.
 type Client struct {
 	hub *Hub
 
-	userID    string
-	channelID string
-
 	// The websocket connection.
 	conn *websocket.Conn
 
+	mu       sync.Mutex
+	channels map[string]bool
+
 	// Buffered channelID of outbound messages.
 	send chan []byte
+}
+
+func (c *Client) SubscribedToChannel(id string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.channels[id]
 }
 
 func (c *Client) readPump(ctx context.Context) {
@@ -74,8 +88,21 @@ func (c *Client) readPump(ctx context.Context) {
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		err = c.hub.msgHandler(ctx, c.channelID, c.userID, message)
+		var clientMsg ClientMessage
+		err = json.Unmarshal(message, &clientMsg)
+		if err != nil {
+			rlog.Warn("parse client message", "error", err)
+			continue
+		}
+		c.mu.Lock()
+		switch clientMsg.Type {
+		case "join":
+			c.channels[clientMsg.ConversationId] = true
+		case "leave":
+			delete(c.channels, clientMsg.ConversationId)
+		}
+		c.mu.Unlock()
+		err = c.hub.msgHandler(ctx, &clientMsg)
 		if err != nil {
 			rlog.Warn("msg handler", "error", err)
 		}

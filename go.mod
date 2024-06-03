@@ -9,11 +9,13 @@ require (
 	encore.dev v1.37.0
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/cockroachdb/errors v1.11.1
+	github.com/gorilla/websocket v1.4.2
 	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sashabaranov/go-openai v1.24.0
 	github.com/slack-go/slack v0.13.0
 	golang.ngrok.com/ngrok v1.9.1
+	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 	google.golang.org/api v0.180.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -39,7 +41,6 @@ require (
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.4 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/inconshreveable/log15 v3.0.0-testing.3+incompatible // indirect
 	github.com/inconshreveable/log15/v3 v3.0.0-testing.5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

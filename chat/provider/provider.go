@@ -13,6 +13,7 @@ type SendMessageRequest struct {
 	Content string
 	Bot     *db.Bot
 	UserID  string
+	Type    string
 }
 
 type ListMessagesResponse struct {

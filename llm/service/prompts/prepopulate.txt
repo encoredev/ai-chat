@@ -1,0 +1,3 @@
+I want you to respond with a conversation between all of the characters described above. The topic of the conversation
+should be randomly generated based on the common interests of the characters. Each character should respond with at least
+4 sentences. The conversation should be at least 20 sentences long.

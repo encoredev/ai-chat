@@ -18,6 +18,9 @@ ON c.provider = @provider AND c.provider_id = @provider_id
 ON CONFLICT(provider_id, provider) DO UPDATE SET name = @name
 RETURNING *;
 
+-- name: GetChannelByProviderID :one
+SELECT * FROM channel WHERE provider_id = @provider_id AND provider = @provider AND deleted IS NULL;
+
 -- name: ListChannelsWithBots :many
 WITH channelIds AS (
     SELECT distinct channel as id FROM bot_channel WHERE deleted IS NULL

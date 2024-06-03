@@ -12,7 +12,7 @@ import (
 //
 // This uses Encore's pubsub package, learn more: https://encore.dev/docs/primitives/pubsub
 var _ = pubsub.NewSubscription(
-	provider.MessageTopic, "provider-message-sub",
+	provider.InboxTopic, "provider-message-sub",
 	pubsub.SubscriptionConfig[*client.Message]{
 		Handler: pubsub.MethodHandler((*Service).ProcessProviderMessage),
 	},

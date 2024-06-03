@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	GetBotChannel(ctx context.Context, db DBTX, arg GetBotChannelParams) (uuid.UUID, error)
 	GetChannel(ctx context.Context, db DBTX, id uuid.UUID) (*Channel, error)
+	GetChannelByProviderID(ctx context.Context, db DBTX, arg GetChannelByProviderIDParams) (*Channel, error)
 	GetChannelByProviderId(ctx context.Context, db DBTX, arg GetChannelByProviderIdParams) (*Channel, error)
 	GetUser(ctx context.Context, db DBTX, id uuid.UUID) (*User, error)
 	InsertMessage(ctx context.Context, db DBTX, arg InsertMessageParams) (*Message, error)

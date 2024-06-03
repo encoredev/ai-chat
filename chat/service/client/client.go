@@ -21,6 +21,7 @@ type Message struct {
 	Author     User
 	Content    string
 	Time       time.Time
+	Type       string
 }
 
 // User is a user in a provider

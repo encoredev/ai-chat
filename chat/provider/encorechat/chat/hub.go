@@ -5,20 +5,23 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gorilla/websocket"
 
+	"encore.app/pkg/fns"
 	"encore.dev/rlog"
 )
 
 // Example copied and adapted from
 // https://github.com/gorilla/websocket/tree/main/examples/chat
-func NewHub(ctx context.Context, msgHandler func(ctx context.Context, channel, author string, content []byte) error) *Hub {
+func NewHub(ctx context.Context, msgHandler messageHandler) *Hub {
 	hub := &Hub{
-		broadcast:  make(chan *channelMessage),
+		broadcast:  make(chan *ClientMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		clients:    make(map[string]map[*Client]bool),
+		clients:    make(map[*Client]bool),
 		msgHandler: msgHandler,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -32,14 +35,16 @@ func NewHub(ctx context.Context, msgHandler func(ctx context.Context, channel, a
 	return hub
 }
 
+type messageHandler func(ctx context.Context, clientMessage *ClientMessage) error
+
 type Hub struct {
 	upgrader websocket.Upgrader
 
 	// Registered clients.
-	clients map[string]map[*Client]bool
+	clients map[*Client]bool
 
 	// Inbound messages from the clients.
-	broadcast chan *channelMessage
+	broadcast chan *ClientMessage
 
 	// Register requests from the clients.
 	register chan *Client
@@ -47,36 +52,25 @@ type Hub struct {
 	// Unregister requests from clients.
 	unregister chan *Client
 
-	msgHandler func(ctx context.Context, channel, author string, content []byte) error
+	msgHandler messageHandler
 
 	ctx context.Context
 }
 
-type channelMessage struct {
-	ChannelID string `json:"channel_id"`
-	UserID    string `json:"user_id"`
-	Content   string `json:"content"`
+func (h *Hub) BroadCast(ctx context.Context, msg *ClientMessage) {
+	h.broadcast <- msg
 }
 
-func (h *Hub) BroadCast(ctx context.Context, channelID, userID, content string) {
-	h.broadcast <- &channelMessage{
-		ChannelID: channelID,
-		UserID:    userID,
-		Content:   content,
-	}
-}
-
-func (h *Hub) Subscribe(channelID, userID string, w http.ResponseWriter, r *http.Request) error {
+func (h *Hub) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return errors.Wrap(err, "upgrade connection")
 	}
 	client := &Client{
-		hub:       h,
-		conn:      conn,
-		send:      make(chan []byte, 256),
-		channelID: channelID,
-		userID:    userID,
+		hub:      h,
+		conn:     conn,
+		send:     make(chan []byte, 256),
+		channels: map[string]bool{},
 	}
 	h.register <- client
 
@@ -94,30 +88,29 @@ func (h *Hub) run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case client := <-h.register:
-			if h.clients[client.channelID] == nil {
-				h.clients[client.channelID] = make(map[*Client]bool)
-			}
-			h.clients[client.channelID][client] = true
+			h.clients[client] = true
 		case client := <-h.unregister:
-			if _, ok := h.clients[client.channelID][client]; ok {
-				delete(h.clients[client.channelID], client)
+			if _, ok := h.clients[client]; ok {
+				delete(h.clients, client)
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			if h.clients[message.ChannelID] == nil {
+			clients := fns.FilterParam(maps.Keys(h.clients), message.ConversationId, (*Client).SubscribedToChannel)
+			if len(clients) == 0 {
 				continue
 			}
+			message.Type = "message"
 			msgData, err := json.Marshal(message)
 			if err != nil {
 				rlog.Error("marshal message", "error", err)
 				continue
 			}
-			for client := range h.clients[message.ChannelID] {
+			for _, client := range clients {
 				select {
 				case client.send <- msgData:
 				default:
 					close(client.send)
-					delete(h.clients[message.ChannelID], client)
+					delete(h.clients, client)
 				}
 			}
 		}

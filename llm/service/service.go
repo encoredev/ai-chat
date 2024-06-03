@@ -60,43 +60,6 @@ func initService() (*Service, error) {
 	return svc, nil
 }
 
-// ProcessTask processes a task from the chat service by forwarding the request to the appropriate provider.
-//
-//encore:api private method=POST path=/ai/task
-func (svc *Service) ProcessTask(ctx context.Context, task *Task) error {
-	var res *BotResponse
-	var err error
-	switch task.Type {
-	case TaskTypeJoin:
-		res, err = svc.Introduce(ctx, task.Request)
-		if err != nil {
-			return errors.Wrap(err, "introduce")
-		}
-	case TaskTypeContinue:
-		res, err = svc.ContinueChat(ctx, task.Request)
-		if err != nil {
-			return errors.Wrap(err, "continue chat")
-		}
-	case TaskTypeLeave:
-		res, err = svc.Goodbye(ctx, task.Request)
-		if err != nil {
-			return errors.Wrap(err, "goodbye")
-		}
-	case TaskTypeInstruct:
-		res, err = svc.Instruct(ctx, task.Request)
-		if err != nil {
-			return errors.Wrap(err, "instruct")
-		}
-	}
-	if len(res.Messages) > 0 {
-		_, err := LLMMessageTopic.Publish(ctx, res)
-		if err != nil {
-			rlog.Warn("publish message", "error", err)
-		}
-	}
-	return nil
-}
-
 // Instruct sends a message to the AI provider to instruct the bot to perform an action.
 //
 //encore:api private path=/ai/instruct
@@ -112,6 +75,15 @@ func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*B
 //
 //encore:api private path=/ai/chat
 func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
+	req.SystemMsg = req.SystemMsg + string(replyPrompt)
+	msgs, err := svc.continueChat(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
+}
+
+func (svc *Service) Prepopulate(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
 	req.SystemMsg = req.SystemMsg + string(replyPrompt)
 	msgs, err := svc.continueChat(ctx, req)
 	if err != nil {

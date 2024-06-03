@@ -60,7 +60,7 @@ func (c *Channel) Info(ctx context.Context) (client.ChannelInfo, error) {
 }
 
 func (c *Channel) Join(ctx context.Context, bot *botdb.Bot) error {
-	return nil
+	return client.JoinChannel(ctx, c.channelID, bot)
 }
 
 func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {

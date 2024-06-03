@@ -100,7 +100,7 @@ func (svc *Service) WebhookMessage(ctx context.Context, req *SlackEvent) (*Chall
 		if msg == nil {
 			return nil, nil
 		}
-		_, err = provider.MessageTopic.Publish(ctx, msg)
+		_, err = provider.InboxTopic.Publish(ctx, msg)
 		if err != nil {
 			return nil, errors.Wrap(err, "publish message")
 		}

@@ -44,6 +44,28 @@ func (q *Queries) GetChannel(ctx context.Context, db DBTX, id uuid.UUID) (*Chann
 	return &i, err
 }
 
+const getChannelByProviderID = `-- name: GetChannelByProviderID :one
+SELECT id, provider_id, provider, name, deleted FROM channel WHERE provider_id = $1 AND provider = $2 AND deleted IS NULL
+`
+
+type GetChannelByProviderIDParams struct {
+	ProviderID string
+	Provider   Provider
+}
+
+func (q *Queries) GetChannelByProviderID(ctx context.Context, db DBTX, arg GetChannelByProviderIDParams) (*Channel, error) {
+	row := db.QueryRowContext(ctx, getChannelByProviderID, arg.ProviderID, arg.Provider)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.ProviderID,
+		&i.Provider,
+		&i.Name,
+		&i.Deleted,
+	)
+	return &i, err
+}
+
 const getChannelByProviderId = `-- name: GetChannelByProviderId :one
 SELECT id, provider_id, provider, name, deleted FROM channel WHERE provider_id = $1 AND provider = $2 AND deleted IS NULL
 `

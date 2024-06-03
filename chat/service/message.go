@@ -83,6 +83,53 @@ func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llm.BotRespons
 	return nil
 }
 
+//encore:api private path=/chat/provider/event method=POST
+func (svc *Service) ProcessProviderEvent(ctx context.Context, event *client.Message) error {
+	switch event.Type {
+	case "channel_created":
+		return svc.ProcessProviderChannelCreated(ctx, event)
+	default:
+		return svc.ProcessProviderMessage(ctx, event)
+	}
+}
+
+//encore:api private path=/chat/provider/channel method=POST
+func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *client.Message) error {
+	prov, ok := svc.providers[msg.Provider]
+	if !ok {
+		return errors.New("provider not found")
+	}
+	channel, err := svc.insertChannel(ctx, client.ChannelInfo{
+		Provider: msg.Provider,
+		ID:       msg.ChannelID,
+		Name:     msg.ChannelID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "insert channel")
+	}
+	resp, err := bot.List(ctx, &bot.ListBotRequest{})
+	if err != nil {
+		return errors.Wrap(err, "list bots")
+	}
+	bots := fns.SelectRandom(resp.Bots, 3)
+	q := db.New()
+	for _, b := range bots {
+		_, err = q.UpsertBotChannel(ctx, chatdb.Stdlib(), db.UpsertBotChannelParams{
+			Bot:      b.ID,
+			Channel:  channel.ID,
+			Provider: msg.Provider,
+		})
+		if err != nil {
+			return errors.Wrap(err, "upsert botID channel")
+		}
+		err := prov.GetChannelClient(ctx, msg.ChannelID).Join(ctx, b)
+		if err != nil {
+			return errors.Wrap(err, "join channel")
+		}
+	}
+	return svc.publishLLMTasks(ctx, llm.TaskTypePrepopulate, bots, channel, "")
+}
+
 // ProcessProviderMessage processes an inbound message from a chat provider. It inserts the message into the database
 // and sends it to the LLM provider to handle the message.
 //
@@ -196,7 +243,6 @@ func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.
 	channelByID := fns.ToMap(channels, func(c *db.Channel) client.ChannelID { return c.ProviderID })
 
 	var insertedMessages []*db.Message
-	publishedChannels := make(map[db.ChannelID]struct{})
 	for _, msg := range messages {
 		author, ok := userByID[msg.Author.ID]
 		if !ok {
@@ -234,7 +280,6 @@ func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.
 				return nil, errors.Wrap(err, "insert channel")
 			}
 		}
-		publishedChannels[channel.ID] = struct{}{}
 		dbMsg, err := q.InsertMessage(ctx, chatdb.Stdlib(), db.InsertMessageParams{
 			ChannelID:  channel.ID,
 			AuthorID:   author.ID,

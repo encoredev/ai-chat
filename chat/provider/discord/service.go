@@ -60,7 +60,7 @@ func initService() (*Service, error) {
 		if message == nil {
 			return nil
 		}
-		_, err := provider.MessageTopic.Publish(ctx, message)
+		_, err := provider.InboxTopic.Publish(ctx, message)
 		return errors.Wrap(err, "publish message")
 	})
 	if err != nil {

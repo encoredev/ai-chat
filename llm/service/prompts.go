@@ -9,6 +9,9 @@ import (
 //go:embed prompts/reply.txt
 var replyPrompt []byte
 
+//go:embed prompts/prepopulate.txt
+var prepopulatePrompt []byte
+
 //go:embed prompts/intro.txt
 var introPrompt []byte
 
