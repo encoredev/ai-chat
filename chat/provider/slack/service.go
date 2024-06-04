@@ -16,7 +16,6 @@ import (
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
-	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 	"encore.dev/rlog"
 	"encore.dev/types/uuid"
@@ -119,9 +118,9 @@ func (s *Service) ListChannels(ctx context.Context) (*provider.ListChannelsRespo
 	if err != nil {
 		return nil, err
 	}
-	var rtn []client.ChannelInfo
+	var rtn []provider.ChannelInfo
 	for _, channel := range resp {
-		rtn = append(rtn, client.ChannelInfo{
+		rtn = append(rtn, provider.ChannelInfo{
 			Provider: chatdb.ProviderSlack,
 			ID:       channel.ID,
 			Name:     channel.Name,
@@ -133,7 +132,7 @@ func (s *Service) ListChannels(ctx context.Context) (*provider.ListChannelsRespo
 // GetUser returns a user by ID.
 //
 //encore:api private method=GET path=/slack/users/:userID
-func (s *Service) GetUser(ctx context.Context, userID string) (*client.User, error) {
+func (s *Service) GetUser(ctx context.Context, userID string) (*provider.User, error) {
 	if strings.HasPrefix(userID, "B") {
 		return nil, nil
 	}
@@ -145,7 +144,7 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*client.User, err
 	if user.Profile.DisplayName != "" {
 		name = user.Profile.DisplayName
 	}
-	return &client.User{
+	return &provider.User{
 		ID:      userID,
 		Name:    name,
 		Profile: user.Profile.Title,
@@ -179,14 +178,14 @@ func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.
 // ChannelInfo returns information about a slack channel.
 //
 //encore:api private method=GET path=/slack/channels/:channelID
-func (s *Service) ChannelInfo(ctx context.Context, channelID string) (client.ChannelInfo, error) {
+func (s *Service) ChannelInfo(ctx context.Context, channelID string) (provider.ChannelInfo, error) {
 	resp, err := s.client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
 		ChannelID: channelID,
 	})
 	if err != nil {
-		return client.ChannelInfo{}, err
+		return provider.ChannelInfo{}, err
 	}
-	return client.ChannelInfo{
+	return provider.ChannelInfo{
 		Provider: chatdb.ProviderSlack,
 		ID:       channelID,
 		Name:     resp.Name,
@@ -225,7 +224,7 @@ func (s *Service) ListMessages(ctx context.Context, channelID string, req *provi
 	if err != nil {
 		return nil, err
 	}
-	var rtn []*client.Message
+	var rtn []*provider.Message
 	for i := len(resp.Messages) - 1; i >= 0; i-- {
 		msg := s.toProviderMessage(resp.Messages[i].Msg, channelID)
 		if msg == nil {
@@ -237,12 +236,12 @@ func (s *Service) ListMessages(ctx context.Context, channelID string, req *provi
 }
 
 // toProviderMessage converts a slack message to a provider message.
-func (svc *Service) toProviderMessage(msg slack.Msg, channel client.ChannelID) *client.Message {
+func (svc *Service) toProviderMessage(msg slack.Msg, channel provider.ChannelID) *provider.Message {
 	if msg.Text == "" || msg.Type != "message" || msg.Hidden ||
 		!slices.Contains([]string{"", "bot_message"}, msg.SubType) {
 		return nil
 	}
-	author := client.User{
+	author := provider.User{
 		ID:   msg.User,
 		Name: msg.Username,
 	}
@@ -261,7 +260,7 @@ func (svc *Service) toProviderMessage(msg slack.Msg, channel client.ChannelID) *
 		}
 	}
 	ts, _ := strconv.ParseFloat(msg.Timestamp, 64)
-	return &client.Message{
+	return &provider.Message{
 		Provider:   chatdb.ProviderSlack,
 		ProviderID: msg.ClientMsgID,
 		ChannelID:  channel,

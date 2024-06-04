@@ -1,4 +1,4 @@
-I want you to pretend to be one of the following characters:
+I want you to pretend to be the following characters:
 
 ```
 %s

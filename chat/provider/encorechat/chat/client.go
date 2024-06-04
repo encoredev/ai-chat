@@ -29,16 +29,15 @@ const (
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
 type ClientMessage struct {
-	Type           string
-	UserId         string
-	ConversationId string
-	Content        string
+	ID             string  `json:"id"`
+	Type           string  `json:"type"`
+	UserId         string  `json:"userId"`
+	ConversationId string  `json:"conversationId"`
+	Content        string  `json:"content"`
+	Avatar         string  `json:"avatar"`
+	Username       string  `json:"username"`
+	Client         *Client `json:"-"`
 }
 
 // Client is a middleman between the websocket connection and the svc.
@@ -51,14 +50,31 @@ type Client struct {
 	mu       sync.Mutex
 	channels map[string]bool
 
+	id string
+
 	// Buffered channelID of outbound messages.
 	send chan []byte
 }
 
-func (c *Client) SubscribedToChannel(id string) bool {
+func (c *Client) WantMessage(msg *ClientMessage) bool {
+	if msg.Client == c {
+		return false
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.channels[id]
+	return c.channels[msg.ConversationId]
+}
+
+func (c *Client) SendMessage(msg *ClientMessage) {
+	if !c.WantMessage(msg) {
+		return
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		rlog.Warn("marshal message", "error", err)
+		return
+	}
+	c.send <- data
 }
 
 func (c *Client) readPump(ctx context.Context) {
@@ -102,7 +118,8 @@ func (c *Client) readPump(ctx context.Context) {
 			delete(c.channels, clientMsg.ConversationId)
 		}
 		c.mu.Unlock()
-		err = c.hub.msgHandler(ctx, &clientMsg)
+		clientMsg.Client = c
+		c.hub.BroadCast(ctx, &clientMsg)
 		if err != nil {
 			rlog.Warn("msg handler", "error", err)
 		}
@@ -135,15 +152,6 @@ func (c *Client) writePump(ctx context.Context) {
 				return
 			}
 			_, _ = w.Write(message)
-
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				_, _ = w.Write(newline)
-				msg := <-c.send
-				_, _ = w.Write(msg)
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}

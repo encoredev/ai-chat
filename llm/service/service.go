@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"image/png"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/nfnt/resize"
-	"gopkg.in/yaml.v2"
 
 	botdb "encore.app/bot/db"
 	chatdb "encore.app/chat/service/db"
@@ -20,7 +20,7 @@ import (
 	"encore.app/llm/service/client"
 	"encore.app/llm/service/client/gemini"
 	"encore.app/llm/service/client/openai"
-	"encore.dev/rlog"
+	"encore.dev/types/uuid"
 )
 
 type ChatRequest struct {
@@ -32,24 +32,38 @@ type ChatRequest struct {
 	Provider    string
 }
 
-type BotResponse struct {
-	TaskType TaskType
-	Channel  *chatdb.Channel
-	Messages []*provider.BotMessage
+type channelTasks map[uuid.UUID]map[string]string
+
+func (c *channelTasks) add(channelID uuid.UUID, provider, taskID string) {
+	if (*c)[channelID] == nil {
+		(*c)[channelID] = map[string]string{}
+	}
+	(*c)[channelID][provider] = taskID
+}
+
+func (c channelTasks) get(channelID uuid.UUID, provider string) (string, bool) {
+	if c[channelID] == nil {
+		return "", false
+	}
+	taskID, ok := c[channelID][provider]
+	return taskID, ok
 }
 
 // This declares a Encore Service, learn more: https://encore.dev/docs/primitives/services-and-apis/service-structs
 //
 //encore:service
 type Service struct {
-	providers map[string]client.Client
+	providers    map[string]client.Client
+	mu           sync.Mutex
+	channelTasks channelTasks
 }
 
 // initService is the constructor for the LLM service. It initializes the LLM providers.
 func initService() (*Service, error) {
 	ctx := context.Background()
 	svc := &Service{
-		providers: map[string]client.Client{},
+		providers:    map[string]client.Client{},
+		channelTasks: channelTasks{},
 	}
 	if openaiClient, ok := openai.NewClient(ctx); ok {
 		svc.providers["openai"] = openaiClient
@@ -63,57 +77,41 @@ func initService() (*Service, error) {
 // Instruct sends a message to the AI provider to instruct the bot to perform an action.
 //
 //encore:api private path=/ai/instruct
-func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
-	msgs, err := svc.continueChat(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
+func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
+	return svc.continueChat(ctx, req, false)
 }
 
 // ContinueChat continues a chat conversation with the AI provider. It is called per channel and llm provider
 //
 //encore:api private path=/ai/chat
-func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
-	req.SystemMsg = req.SystemMsg + string(replyPrompt)
-	msgs, err := svc.continueChat(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
+func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
+	req.SystemMsg = req.SystemMsg + string(continueChatPrompt)
+	req.Type = provider.TaskTypeContinue
+	return svc.continueChat(ctx, req, true)
 }
 
-func (svc *Service) Prepopulate(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
-	req.SystemMsg = req.SystemMsg + string(replyPrompt)
-	msgs, err := svc.continueChat(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &BotResponse{Messages: msgs, Channel: req.Channel}, nil
+func (svc *Service) Prepopulate(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
+	req.SystemMsg = req.SystemMsg + string(prepopulatePrompt)
+	req.Type = provider.TaskTypePrepopulate
+	return svc.continueChat(ctx, req, true)
 }
 
 // Introduce sends a message to the AI provider to introduce the bot to the channel.
 //
 //encore:api private path=/ai/introduce
-func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
+func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(introPrompt), req.Channel.Name)
-	resp, err := svc.continueChat(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &BotResponse{Messages: resp, Channel: req.Channel}, nil
+	req.Type = provider.TaskTypeJoin
+	return svc.continueChat(ctx, req, false)
 }
 
 // Goodbye sends a message to the AI provider to say goodbye to the channel.
 //
 //encore:api private path=/ai/goodbye
-func (svc *Service) Goodbye(ctx context.Context, req *provider.ChatRequest) (*BotResponse, error) {
+func (svc *Service) Goodbye(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(goodbyePrompt), req.Channel)
-	resp, err := svc.continueChat(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &BotResponse{Messages: resp, Channel: req.Channel}, nil
+	req.Type = provider.TaskTypeLeave
+	return svc.continueChat(ctx, req, false)
 }
 
 type GenerateBotProfileRequest struct {
@@ -173,17 +171,41 @@ func formatResponsePrompt(bots []*botdb.Bot) string {
 	return fmt.Sprintf(string(responsePrompt), names)
 }
 
+func (svc *Service) cancelLastTask(ctx context.Context, provider string, channelID uuid.UUID) error {
+	svc.mu.Lock()
+
+	taskID, ok := svc.channelTasks.get(channelID, provider)
+	svc.mu.Unlock()
+	if !ok {
+		return nil
+	}
+	prov, ok := svc.providers[provider]
+	if !ok {
+		return errors.Newf("provider not found: %s", provider)
+	}
+	err := prov.CancelTask(ctx, taskID)
+	if err != nil {
+		return errors.Wrap(err, "cancel task")
+	}
+	return nil
+}
+
 // continueChat continues a chat conversation with the AI provider. It is used by all the other ai tasks
-func (svc *Service) continueChat(ctx context.Context, req *provider.ChatRequest) ([]*provider.BotMessage, error) {
+func (svc *Service) continueChat(ctx context.Context, req *provider.ChatRequest, cancelPrevious bool) (*provider.ContinueChatResponse, error) {
+	if cancelPrevious {
+		err := svc.cancelLastTask(ctx, req.Provider, req.Channel.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "cancel last task")
+		}
+	}
 	prov, ok := svc.providers[req.Provider]
 	if !ok {
 		return nil, errors.Newf("provider not found: %s", req.Provider)
 	}
 	botByName := make(map[string]*botdb.Bot)
 	for _, b := range req.Bots {
-		botByName[b.Name] = b
+		botByName[strings.ToLower(b.Name)] = b
 	}
-	var messages []*provider.BotMessage
 	req.Messages = append(req.Messages, &chatdb.Message{
 		ChannelID: req.Channel.ID,
 		AuthorID:  chatdb.Admin.ID,
@@ -195,38 +217,12 @@ func (svc *Service) continueChat(ctx context.Context, req *provider.ChatRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, "continue chat")
 	}
-	rlog.Info("AI response", "response", resp)
-	_, after, ok := strings.Cut(resp, "```yaml")
-	if ok {
-		resp = after
-		before, _, ok := strings.Cut(resp, "```")
-		if ok {
-			resp = before
-		}
+	if cancelPrevious {
+		svc.mu.Lock()
+		defer svc.mu.Unlock()
+		svc.channelTasks.add(req.Channel.ID, req.Provider, resp.TaskID)
 	}
-	respMap := make(map[string]string)
-	err = yaml.Unmarshal([]byte(resp), &respMap)
-	if err != nil {
-		return nil, err
-	}
-
-	for botName, content := range respMap {
-		botName := strings.Split(botName, "/")
-		if botName[len(botName)-1] == "None" {
-			continue
-		}
-		bot, ok := botByName[botName[len(botName)-1]]
-		if !ok {
-			rlog.Warn("bot not found", "bot", botName)
-			continue
-		}
-		messages = append(messages, &provider.BotMessage{
-			Bot:     bot,
-			Content: content,
-			Time:    time.Now(),
-		})
-	}
-	return messages, nil
+	return resp, errors.Wrap(err, "continue chat")
 }
 
 // generateAvatar generates an avatar for the bot using the specified provider.

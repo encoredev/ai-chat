@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"encore.app/bot/db"
 	"encore.app/llm/service"
 	"encore.dev/storage/sqldb"
@@ -38,6 +40,9 @@ type CreateBotRequest struct {
 //
 //encore:api public method=POST path=/bots
 func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*db.Bot, error) {
+	if req.Name == "" || req.Prompt == "" || req.LLM == "" {
+		return nil, errors.New("name, prompt, and llm are required")
+	}
 	resp, err := llm.GenerateBotProfile(ctx, &llm.GenerateBotProfileRequest{
 		Name:     req.Name,
 		Prompt:   req.Prompt,

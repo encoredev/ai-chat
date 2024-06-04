@@ -22,12 +22,12 @@ func NewClient(ctx context.Context) (*Client, bool) {
 // Client wraps the openai service endpoints to implement the llm client interface.
 type Client struct{}
 
-func (p Client) ContinueChat(ctx context.Context, req *provider.ChatRequest) (string, error) {
-	resp, err := openai.ContinueChat(ctx, req)
-	if err != nil {
-		return "", errors.Wrap(err, "continue chat")
-	}
-	return resp.Message, nil
+func (p Client) CancelTask(ctx context.Context, taskID string) error {
+	return openai.CancelTask(ctx, taskID)
+}
+
+func (p Client) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
+	return openai.ContinueChat(ctx, req)
 }
 
 func (p Client) Ask(ctx context.Context, msg string) (string, error) {

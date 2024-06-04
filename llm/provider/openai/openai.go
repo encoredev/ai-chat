@@ -4,12 +4,17 @@ package openai
 import (
 	"context"
 	"encoding/base64"
+	"io"
+	"sync"
 
 	"github.com/cockroachdb/errors"
 	"github.com/sashabaranov/go-openai"
 
 	"encore.app/llm/provider"
+	"encore.app/pkg/fns"
 	"encore.dev/config"
+	"encore.dev/rlog"
+	"encore.dev/types/uuid"
 )
 
 // This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
@@ -32,7 +37,10 @@ var cfg = config.Load[*Config]()
 //
 //encore:service
 type Service struct {
-	client *openai.Client
+	client      *openai.Client
+	taskCtx     context.Context
+	mu          sync.Mutex
+	activeTasks map[string]*task
 }
 
 // initService initializes the OpenAI service by creating a client.
@@ -41,7 +49,9 @@ func initService() (*Service, error) {
 		return nil, nil
 	}
 	svc := &Service{
-		client: openai.NewClient(secrets.OpenAIKey),
+		taskCtx:     context.Background(),
+		activeTasks: map[string]*task{},
+		client:      openai.NewClient(secrets.OpenAIKey),
 	}
 	return svc, nil
 }
@@ -116,14 +126,21 @@ func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error
 	return &AskResponse{Message: resp.Choices[0].Message.Content}, nil
 }
 
-type ContinueChatResponse struct {
-	Message string
+//encore:api private method=DELETE path=/openai/task/:taskID
+func (p *Service) CancelTask(ctx context.Context, taskID string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if task, ok := p.activeTasks[taskID]; ok {
+		task.cancel()
+		delete(p.activeTasks, taskID)
+	}
+	return nil
 }
 
 // ContinueChat continues a chat conversation with the OpenAI chat model.
 //
 //encore:api private method=POST path=/openai/continue-chat
-func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*ContinueChatResponse, error) {
+func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	var messages []openai.ChatCompletionMessage
 	if req.SystemMsg != "" {
 		messages = append(messages, openai.ChatCompletionMessage{
@@ -143,14 +160,57 @@ func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (
 			Content: req.Format(m),
 		})
 	}
-	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+
+	task := &task{id: uuid.Must(uuid.NewV4()).String(), service: p}
+	p.mu.Lock()
+	p.activeTasks[task.id] = task
+	p.mu.Unlock()
+	go task.run(p.taskCtx, p.client, messages, req.Write)
+	return &provider.ContinueChatResponse{
+		TaskID: task.id,
+	}, nil
+}
+
+type task struct {
+	id      string
+	service *Service
+	cancel  func()
+}
+
+func (t *task) run(ctx context.Context, client *openai.Client, messages []openai.ChatCompletionMessage, writer func(context.Context, string) error) {
+	ctx, t.cancel = context.WithCancel(ctx)
+	stream, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
 		Model:     cfg.ChatModel(),
 		Messages:  messages,
 		MaxTokens: cfg.MaxTokens(),
 		N:         1,
 	})
 	if err != nil {
-		return nil, err
+		rlog.Error("create chat completion stream", "error", err)
+		return
 	}
-	return &ContinueChatResponse{Message: resp.Choices[0].Message.Content}, nil
+	defer fns.CloseIgnore(stream)
+	for {
+		response, err := stream.Recv()
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		if errors.Is(err, io.EOF) {
+			err := writer(ctx, "\n")
+			if err != nil {
+				rlog.Warn("write response", "error", err)
+			}
+			break
+		}
+		err = writer(ctx, response.Choices[0].Delta.Content)
+		if err != nil {
+			rlog.Warn("write response", "error", err)
+			return
+		}
+	}
+	t.service.mu.Lock()
+	defer t.service.mu.Unlock()
+	delete(t.service.activeTasks, t.id)
 }

@@ -10,6 +10,7 @@ import (
 	"encore.app/chat/provider/discord"
 	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
+	"encore.dev/types/uuid"
 )
 
 func NewClient(ctx context.Context) (*Client, bool) {
@@ -22,7 +23,7 @@ func NewClient(ctx context.Context) (*Client, bool) {
 // Client wraps the discord service endpoints to implement the chat client interface.
 type Client struct{}
 
-func (p *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error) {
+func (p *Client) ListChannels(ctx context.Context) ([]provider.ChannelInfo, error) {
 	resp, err := discord.ListChannels(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list channels")
@@ -30,11 +31,11 @@ func (p *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error)
 	return resp.Channels, nil
 }
 
-func (p *Client) GetUser(ctx context.Context, id client.UserID) (*client.User, error) {
+func (p *Client) GetUser(ctx context.Context, id provider.UserID) (*provider.User, error) {
 	return discord.GetUser(ctx, id)
 }
 
-func (p *Client) GetChannelClient(ctx context.Context, id client.ChannelID) client.ChannelClient {
+func (p *Client) GetChannelClient(ctx context.Context, id provider.ChannelID) client.ChannelClient {
 	return &Channel{
 		Client:    p,
 		channelID: id,
@@ -46,11 +47,15 @@ type Channel struct {
 	channelID string
 }
 
-func (c *Channel) Send(ctx context.Context, bot *botdb.Bot, content string) error {
-	return discord.SendMessage(ctx, c.channelID, &provider.SendMessageRequest{Content: content, Bot: bot})
+func (c *Channel) Typing(ctx context.Context, botID uuid.UUID) error {
+	return nil
 }
 
-func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*client.Message, error) {
+func (c *Channel) Send(ctx context.Context, req *provider.SendMessageRequest) error {
+	return discord.SendMessage(ctx, c.channelID, req)
+}
+
+func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*provider.Message, error) {
 	fromID := ""
 	if from != nil {
 		fromID = from.ProviderID
@@ -62,7 +67,7 @@ func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*cl
 	return resp.Messages, nil
 }
 
-func (c *Channel) Info(ctx context.Context) (client.ChannelInfo, error) {
+func (c *Channel) Info(ctx context.Context) (provider.ChannelInfo, error) {
 	return discord.ChannelInfo(ctx, c.channelID)
 }
 

@@ -2,67 +2,39 @@ package encorechat
 
 import (
 	"context"
-	"database/sql"
-	"time"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 
 	"encore.app/bot"
 	botdb "encore.app/bot/db"
-	"encore.app/chat/provider"
-	"encore.app/chat/service/client"
-	chatdb "encore.app/chat/service/db"
+	"encore.app/chat/service/db"
 	"encore.app/pkg/fns"
 	"encore.dev/storage/sqldb"
 	"encore.dev/types/uuid"
 )
 
-var db = sqldb.Named("chat")
+var chatDb = sqldb.Named("chat")
 
 type DataSource struct{}
 
-func (d *DataSource) RandomizeBots(ctx context.Context, count int) ([]*botdb.Bot, error) {
-	resp, err := bot.List(ctx, &bot.ListBotRequest{})
-	if err != nil {
-		return nil, errors.Wrap(err, "list bots")
-	}
-	return fns.SelectRandom(resp.Bots, count), nil
-}
-
-func (d *DataSource) UpsertChannel(ctx context.Context, id string) (*chatdb.Channel, error) {
-	q := chatdb.New()
-	channel, err := q.GetChannelByProviderID(ctx, db.Stdlib(), chatdb.GetChannelByProviderIDParams{
+func (d *DataSource) GetChannel(ctx context.Context, id string) (*db.Channel, bool) {
+	q := db.New()
+	channel, err := q.GetChannelByProviderID(ctx, chatDb.Stdlib(), db.GetChannelByProviderIDParams{
 		ProviderID: id,
-		Provider:   chatdb.ProviderEncorechat,
+		Provider:   db.ProviderEncorechat,
 	})
-	if errors.Is(err, sql.ErrNoRows) {
-		channel, err = q.UpsertChannel(ctx, db.Stdlib(), chatdb.UpsertChannelParams{
-			ProviderID: id,
-			Provider:   chatdb.ProviderEncorechat,
-			Name:       id,
-		})
-		bots, err := d.RandomizeBots(ctx, 3)
-		if err != nil {
-			return nil, errors.Wrap(err, "randomize bots")
-		}
-		_, err = provider.InboxTopic.Publish(ctx, &client.Message{
-			Provider:   chatdb.ProviderEncorechat,
-			ProviderID: uuid.Must(uuid.NewV4()).String(),
-			ChannelID:  id,
-			Time:       time.Now(),
-			Type:       "channel_created",
-		})
-		return channel, errors.Wrap(err, "upsert channel")
-	} else if err != nil {
-		return nil, errors.Wrap(err, "get channel")
+	if err != nil {
+		return nil, false
 	}
-	return channel, nil
+	return channel, true
 }
 
-func (d *DataSource) GetChannelUsers(ctx context.Context, c *chatdb.Channel) ([]*chatdb.User, []*botdb.Bot, error) {
-	q := chatdb.New()
-	members, err := q.ListUsersInChannel(ctx, db.Stdlib(), c.ID)
-	botsIds := fns.Map(members, func(m *chatdb.User) uuid.UUID { return m.ID })
+func (d *DataSource) GetChannelUsers(ctx context.Context, c *db.Channel) ([]*db.User, []*botdb.Bot, error) {
+	q := db.New()
+	members, err := q.ListUsersInChannel(ctx, chatDb.Stdlib(), c.ID)
+	botUsers := fns.Filter(members, func(m *db.User) bool { return m.BotID != nil })
+	botsIds := fns.Map(botUsers, func(m *db.User) uuid.UUID { return *m.BotID })
 	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: botsIds})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "list bots")
@@ -70,8 +42,12 @@ func (d *DataSource) GetChannelUsers(ctx context.Context, c *chatdb.Channel) ([]
 	return members, bots.Bots, nil
 }
 
-func (d *DataSource) GetChannelMessage(ctx context.Context, c *chatdb.Channel) ([]*chatdb.Message, error) {
-	q := chatdb.New()
-	messages, err := q.ListMessagesInChannel(ctx, db.Stdlib(), c.ID)
-	return messages, errors.Wrap(err, "list messages")
+func (d *DataSource) GetChannelMessages(ctx context.Context, c *db.Channel) ([]*db.Message, error) {
+	q := db.New()
+	messages, err := q.ListMessagesInChannel(ctx, chatDb.Stdlib(), c.ID)
+	if err != nil {
+		return nil, errors.Wrap(err, "list messages")
+	}
+	slices.Reverse(messages)
+	return messages, nil
 }

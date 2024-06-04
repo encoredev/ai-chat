@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"golang.org/x/exp/maps"
 
 	"github.com/cockroachdb/errors"
@@ -67,6 +68,7 @@ func (h *Hub) Subscribe(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "upgrade connection")
 	}
 	client := &Client{
+		id:       uuid.New().String(),
 		hub:      h,
 		conn:     conn,
 		send:     make(chan []byte, 256),
@@ -95,11 +97,14 @@ func (h *Hub) run(ctx context.Context) {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			clients := fns.FilterParam(maps.Keys(h.clients), message.ConversationId, (*Client).SubscribedToChannel)
-			if len(clients) == 0 {
-				continue
+			if h.msgHandler != nil {
+				go func() {
+					if err := h.msgHandler(ctx, message); err != nil {
+						rlog.Error("handle message", "error", err)
+					}
+				}()
 			}
-			message.Type = "message"
+			clients := fns.FilterParam(maps.Keys(h.clients), message, (*Client).WantMessage)
 			msgData, err := json.Marshal(message)
 			if err != nil {
 				rlog.Error("marshal message", "error", err)

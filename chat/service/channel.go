@@ -7,9 +7,9 @@ import (
 
 	"encore.app/bot"
 	botdb "encore.app/bot/db"
-	"encore.app/chat/service/client"
+	"encore.app/chat/provider"
 	"encore.app/chat/service/db"
-	"encore.app/llm/service"
+	provider2 "encore.app/llm/provider"
 	"encore.dev/rlog"
 	"encore.dev/types/uuid"
 )
@@ -58,6 +58,19 @@ func (svc *Service) ListChannels(ctx context.Context, req *ListChannelRequest) (
 	return &ListChannelsResponse{Channels: channels}, nil
 }
 
+//encore:api public method=POST path=/chat/provider/:provider/channels/:channelID/bots/:botID
+func (svc *Service) AddBotToProviderChannel(ctx context.Context, provider string, channelID string, botID uuid.UUID) error {
+	q := db.New()
+	c, err := q.GetChannelByProviderID(ctx, chatdb.Stdlib(), db.GetChannelByProviderIDParams{
+		ProviderID: channelID,
+		Provider:   db.Provider(provider),
+	})
+	if err != nil {
+		return errors.Wrap(err, "get channel")
+	}
+	return svc.AddBotToChannel(ctx, c.ID, botID)
+}
+
 // AddBotToChannel adds a bot to a channel. It will trigger a join event in the chat provider.
 // It will also create a introduction task in the LLM service which will be sent to the channel.
 //
@@ -93,7 +106,7 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	if err != nil {
 		return errors.Wrap(err, "join channel")
 	}
-	err = svc.publishLLMTasks(ctx, llm.TaskTypeJoin, []*botdb.Bot{b}, c, "")
+	err = svc.publishLLMTasks(ctx, provider2.TaskTypeJoin, []*botdb.Bot{b}, c, "")
 	if err != nil {
 		return errors.Wrap(err, "publish chat event")
 	}
@@ -122,7 +135,7 @@ func (svc *Service) RemoveBotFromChannel(ctx context.Context, channelID uuid.UUI
 		return errors.Wrap(err, "get bot")
 	}
 
-	err = svc.publishLLMTasks(ctx, llm.TaskTypeLeave, []*botdb.Bot{bot}, channel, "")
+	err = svc.publishLLMTasks(ctx, provider2.TaskTypeLeave, []*botdb.Bot{bot}, channel, "")
 	if err != nil {
 		return errors.Wrap(err, "publish chat event")
 	}
@@ -159,7 +172,7 @@ func (svc *Service) initChannels(ctx context.Context) error {
 
 // insertChannel inserts a channel into the database. It's triggered when a new channel is discovered from
 // a chat provider.
-func (svc *Service) insertChannel(ctx context.Context, channel client.ChannelInfo) (*db.Channel, error) {
+func (svc *Service) insertChannel(ctx context.Context, channel provider.ChannelInfo) (*db.Channel, error) {
 	queries := db.New()
 	dbChannel, err := queries.UpsertChannel(ctx, chatdb.Stdlib(), db.UpsertChannelParams{
 		ProviderID: channel.ID,

@@ -6,8 +6,8 @@ import (
 
 // These embeds are used to store prompts defined in the prompts/ directory.
 
-//go:embed prompts/reply.txt
-var replyPrompt []byte
+//go:embed prompts/continue_chat.txt
+var continueChatPrompt []byte
 
 //go:embed prompts/prepopulate.txt
 var prepopulatePrompt []byte

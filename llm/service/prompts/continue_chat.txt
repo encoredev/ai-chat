@@ -1,0 +1,5 @@
+If the latest message was addressed to one or several of the characters, respond with a conversation between those characters.
+Keep the messages short and to the point.
+Keep each response messages to less than 200 words
+The characters are encouraged to continue the discussion between each other, but maximum of 5 responses per character.
+The replies should be in chronological order, so that the conversation makes sense.

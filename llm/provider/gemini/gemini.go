@@ -135,14 +135,10 @@ func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error
 	return &AskResponse{Message: flattenResponse(resp)}, nil
 }
 
-type ContinueChatResponse struct {
-	Message string
-}
-
 // ContinueChat sends a series of messages to the Gemini API and returns the response.
 //
 //encore:api private method=POST path=/gemini/continue-chat
-func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*ContinueChatResponse, error) {
+func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	var history []*genai.Content
 	curMsg := &genai.Content{
 		Role: "user",
@@ -177,5 +173,6 @@ func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (
 	if err != nil {
 		return nil, errors.Wrap(err, "send message")
 	}
-	return &ContinueChatResponse{Message: flattenResponse(resp)}, nil
+	err = req.Write(ctx, flattenResponse(resp))
+	return &provider.ContinueChatResponse{}, errors.Wrap(err, "write response")
 }

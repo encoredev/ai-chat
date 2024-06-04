@@ -21,12 +21,12 @@ func NewClient(ctx context.Context) (*Client, bool) {
 // Client wraps the gemini service endpoints to implement the llm client interface.
 type Client struct{}
 
-func (p *Client) ContinueChat(ctx context.Context, req *provider.ChatRequest) (string, error) {
-	resp, err := gemini.ContinueChat(ctx, req)
-	if err != nil {
-		return "", errors.Wrap(err, "continue chat")
-	}
-	return resp.Message, nil
+func (p *Client) CancelTask(ctx context.Context, taskID string) error {
+	return nil
+}
+
+func (p *Client) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
+	return gemini.ContinueChat(ctx, req)
 }
 
 func (p *Client) Ask(ctx context.Context, msg string) (string, error) {

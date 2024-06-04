@@ -8,6 +8,7 @@ import (
 	"encore.app/chat/provider/encorechat"
 	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
+	"encore.dev/types/uuid"
 )
 
 func NewClient(ctx context.Context) (*Client, bool) {
@@ -20,18 +21,18 @@ func NewClient(ctx context.Context) (*Client, bool) {
 // Client wraps the discord service endpoints to implement the chat client interface.
 type Client struct{}
 
-func (p *Client) ListChannels(ctx context.Context) ([]client.ChannelInfo, error) {
+func (p *Client) ListChannels(ctx context.Context) ([]provider.ChannelInfo, error) {
 	return nil, nil
 }
 
-func (p *Client) GetUser(ctx context.Context, id client.UserID) (*client.User, error) {
-	return &client.User{
+func (p *Client) GetUser(ctx context.Context, id provider.UserID) (*provider.User, error) {
+	return &provider.User{
 		ID:   id,
 		Name: id,
 	}, nil
 }
 
-func (p *Client) GetChannelClient(ctx context.Context, id client.ChannelID) client.ChannelClient {
+func (p *Client) GetChannelClient(ctx context.Context, id provider.ChannelID) client.ChannelClient {
 	return &Channel{
 		Client:    p,
 		channelID: id,
@@ -43,16 +44,20 @@ type Channel struct {
 	channelID string
 }
 
-func (c *Channel) Send(ctx context.Context, bot *botdb.Bot, content string) error {
-	return encorechat.SendMessage(ctx, c.channelID, &provider.SendMessageRequest{Content: content, Bot: bot})
+func (c *Channel) Typing(ctx context.Context, botID uuid.UUID) error {
+	return encorechat.SendTyping(ctx, c.channelID, botID)
 }
 
-func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*client.Message, error) {
+func (c *Channel) Send(ctx context.Context, req *provider.SendMessageRequest) error {
+	return encorechat.SendMessage(ctx, c.channelID, req)
+}
+
+func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*provider.Message, error) {
 	return nil, nil
 }
 
-func (c *Channel) Info(ctx context.Context) (client.ChannelInfo, error) {
-	return client.ChannelInfo{
+func (c *Channel) Info(ctx context.Context) (provider.ChannelInfo, error) {
+	return provider.ChannelInfo{
 		Provider: chatdb.ProviderEncorechat,
 		ID:       c.channelID,
 		Name:     c.channelID,
@@ -60,7 +65,7 @@ func (c *Channel) Info(ctx context.Context) (client.ChannelInfo, error) {
 }
 
 func (c *Channel) Join(ctx context.Context, bot *botdb.Bot) error {
-	return client.JoinChannel(ctx, c.channelID, bot)
+	return encorechat.JoinChannel(ctx, c.channelID, bot)
 }
 
 func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {

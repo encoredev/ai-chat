@@ -1,4 +1,0 @@
-If the latest message was addressed to one or several of the characters,
-you should reply to it otherwise respond with an empty yaml.
-Keep the answer short and to the point.
-Keep the reply for each character to less than 300 words

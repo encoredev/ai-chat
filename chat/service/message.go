@@ -10,7 +10,7 @@ import (
 
 	"encore.app/bot"
 	botdb "encore.app/bot/db"
-	"encore.app/chat/service/client"
+	"encore.app/chat/provider"
 	"encore.app/chat/service/db"
 	llmprovider "encore.app/llm/provider"
 	"encore.app/llm/service"
@@ -46,7 +46,7 @@ func (svc *Service) InstructBot(ctx context.Context, req *InstructRequest) error
 		return errors.Wrap(err, "get bot")
 	}
 	channel, err := svc.GetChannel(ctx, req.Channel)
-	err = svc.publishLLMTasks(ctx, llm.TaskTypeInstruct, bots.Bots, channel, req.Instruction)
+	err = svc.publishLLMTasks(ctx, llmprovider.TaskTypeInstruct, bots.Bots, channel, req.Instruction)
 	return errors.Wrap(err, "publish llm task")
 
 }
@@ -56,24 +56,38 @@ func (svc *Service) InstructBot(ctx context.Context, req *InstructRequest) error
 // The message is inserted into the database by the channel message handler.
 //
 //encore:api private path=/chat/llm/message method=POST
-func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llm.BotResponse) error {
+func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llmprovider.BotResponse) error {
 	prov, ok := svc.providers[event.Channel.Provider]
 	if !ok {
 		return errors.New("provider not found")
 	}
+	botIDs := fns.Map(event.Messages, func(m *llmprovider.BotMessage) uuid.UUID { return m.Bot })
+	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: botIDs})
+	if err != nil {
+		return errors.Wrap(err, "list bots")
+	}
+	botsByID := fns.ToMap(bots.Bots, func(b *botdb.Bot) uuid.UUID { return b.ID })
 	pc := prov.GetChannelClient(ctx, event.Channel.ProviderID)
 	for _, msg := range event.Messages {
-		err := pc.Send(ctx, msg.Bot, msg.Content)
-		if err != nil {
-			rlog.Warn("send message", "error", err)
+		switch msg.Type {
+		case llmprovider.BotMessageTypeTyping:
+			err := pc.Typing(ctx, botsByID[msg.Bot].ID)
+			if err != nil {
+				rlog.Warn("send typing", "error", err)
+			}
+		default:
+			err := pc.Send(ctx, &provider.SendMessageRequest{
+				Content: msg.Content,
+				Bot:     botsByID[msg.Bot],
+				Type:    "message",
+			})
+			if err != nil {
+				rlog.Warn("send message", "error", err)
+			}
 		}
 	}
-	bots := make(map[*botdb.Bot]struct{})
-	for _, msg := range event.Messages {
-		bots[msg.Bot] = struct{}{}
-	}
-	if event.TaskType == llm.TaskTypeLeave {
-		for b, _ := range bots {
+	if event.TaskType == llmprovider.TaskTypeLeave {
+		for _, b := range botsByID {
 			err := prov.GetChannelClient(ctx, event.Channel.ProviderID).Leave(ctx, b)
 			if err != nil {
 				return errors.Wrap(err, "leave channel")
@@ -83,8 +97,8 @@ func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llm.BotRespons
 	return nil
 }
 
-//encore:api private path=/chat/provider/event method=POST
-func (svc *Service) ProcessProviderEvent(ctx context.Context, event *client.Message) error {
+//encore:api private path=/chat/events/provider method=POST
+func (svc *Service) ProcessProviderEvent(ctx context.Context, event *provider.Message) error {
 	switch event.Type {
 	case "channel_created":
 		return svc.ProcessProviderChannelCreated(ctx, event)
@@ -93,13 +107,13 @@ func (svc *Service) ProcessProviderEvent(ctx context.Context, event *client.Mess
 	}
 }
 
-//encore:api private path=/chat/provider/channel method=POST
-func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *client.Message) error {
+//encore:api private path=/chat/events/provider/channel method=POST
+func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *provider.Message) error {
 	prov, ok := svc.providers[msg.Provider]
 	if !ok {
 		return errors.New("provider not found")
 	}
-	channel, err := svc.insertChannel(ctx, client.ChannelInfo{
+	channel, err := svc.insertChannel(ctx, provider.ChannelInfo{
 		Provider: msg.Provider,
 		ID:       msg.ChannelID,
 		Name:     msg.ChannelID,
@@ -111,7 +125,7 @@ func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *clie
 	if err != nil {
 		return errors.Wrap(err, "list bots")
 	}
-	bots := fns.SelectRandom(resp.Bots, 3)
+	bots := fns.SelectRandom(resp.Bots, 2)
 	q := db.New()
 	for _, b := range bots {
 		_, err = q.UpsertBotChannel(ctx, chatdb.Stdlib(), db.UpsertBotChannelParams{
@@ -127,14 +141,14 @@ func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *clie
 			return errors.Wrap(err, "join channel")
 		}
 	}
-	return svc.publishLLMTasks(ctx, llm.TaskTypePrepopulate, bots, channel, "")
+	return svc.publishLLMTasks(ctx, llmprovider.TaskTypePrepopulate, bots, channel, "")
 }
 
 // ProcessProviderMessage processes an inbound message from a chat provider. It inserts the message into the database
 // and sends it to the LLM provider to handle the message.
 //
-//encore:api private path=/chat/provider/message method=POST
-func (svc *Service) ProcessProviderMessage(ctx context.Context, msg *client.Message) error {
+//encore:api private path=/chat/events/provider/message method=POST
+func (svc *Service) ProcessProviderMessage(ctx context.Context, msg *provider.Message) error {
 	msgs, err := svc.handleProviderMessages(ctx, msg.Provider, msg)
 	if err != nil {
 		return errors.Wrap(err, "handle provider messages")
@@ -165,13 +179,13 @@ func (svc *Service) ProcessProviderMessage(ctx context.Context, msg *client.Mess
 	if err != nil {
 		return errors.Wrap(err, "get channel")
 	}
-	err = svc.publishLLMTasks(ctx, llm.TaskTypeContinue, bots.Bots, channel, "")
+	err = svc.publishLLMTasks(ctx, llmprovider.TaskTypeContinue, bots.Bots, channel, "")
 	return errors.Wrap(err, "publish llm task")
 }
 
 // publishLLMTasks send tasks to the LLM provider to handle a specific event in a channel. It sends the task to all
 // providers that have bots in the channel.
-func (svc *Service) publishLLMTasks(ctx context.Context, typ llm.TaskType, bots []*botdb.Bot, channel *db.Channel, adminPrompt string) error {
+func (svc *Service) publishLLMTasks(ctx context.Context, typ llmprovider.TaskType, bots []*botdb.Bot, channel *db.Channel, adminPrompt string) error {
 	msgs, err := svc.getChannelHistory(ctx, channel.ID)
 	if err != nil {
 		return errors.Wrap(err, "get channel history")
@@ -186,17 +200,16 @@ func (svc *Service) publishLLMTasks(ctx context.Context, typ llm.TaskType, bots 
 		botsByProvider[b.Provider] = append(botsByProvider[b.Provider], b)
 	}
 	for prov, bots := range botsByProvider {
-		_, err := llm.TaskTopic.Publish(ctx, &llm.Task{
-			Type: typ,
-			Request: &llmprovider.ChatRequest{
-				Bots:      bots,
-				Users:     users,
-				Channel:   channel,
-				Messages:  msgs,
-				SystemMsg: adminPrompt,
-				Provider:  prov,
-			},
-		})
+		_, err := llm.TaskTopic.Publish(ctx, &llmprovider.ChatRequest{
+			Bots:      bots,
+			Users:     users,
+			Channel:   channel,
+			Messages:  msgs,
+			SystemMsg: adminPrompt,
+			Provider:  prov,
+			Type:      typ,
+		},
+		)
 		if err != nil {
 			rlog.Warn("publish llm task", "error", err)
 		}
@@ -225,7 +238,7 @@ func (svc *Service) loadChannelHistory(ctx context.Context, channel *db.Channel)
 
 // handleProviderMessages inserts messages, authors and channels from a provider into the database.
 // It's used when loading the history of a channel or when processing inbound messages.
-func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.Provider, messages ...*client.Message) ([]*db.Message, error) {
+func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.Provider, messages ...*provider.Message) ([]*db.Message, error) {
 	q := db.New()
 	prov, ok := svc.providers[providerName]
 	if !ok {
@@ -235,12 +248,12 @@ func (svc *Service) handleProviderMessages(ctx context.Context, providerName db.
 	if err != nil {
 		return nil, errors.Wrap(err, "list users by provider")
 	}
-	userByID := fns.ToMap(users, func(u *db.User) client.UserID { return u.ProviderID })
+	userByID := fns.ToMap(users, func(u *db.User) provider.UserID { return u.ProviderID })
 	channels, err := q.ListChannelsByProvider(ctx, chatdb.Stdlib(), providerName)
 	if err != nil {
 		return nil, errors.Wrap(err, "list channels by provider")
 	}
-	channelByID := fns.ToMap(channels, func(c *db.Channel) client.ChannelID { return c.ProviderID })
+	channelByID := fns.ToMap(channels, func(c *db.Channel) provider.ChannelID { return c.ProviderID })
 
 	var insertedMessages []*db.Message
 	for _, msg := range messages {

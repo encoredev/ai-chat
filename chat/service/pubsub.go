@@ -2,8 +2,7 @@ package chat
 
 import (
 	"encore.app/chat/provider"
-	client "encore.app/chat/service/client"
-	llm "encore.app/llm/service"
+	llmprovider "encore.app/llm/provider"
 	"encore.dev/pubsub"
 )
 
@@ -13,8 +12,8 @@ import (
 // This uses Encore's pubsub package, learn more: https://encore.dev/docs/primitives/pubsub
 var _ = pubsub.NewSubscription(
 	provider.InboxTopic, "provider-message-sub",
-	pubsub.SubscriptionConfig[*client.Message]{
-		Handler: pubsub.MethodHandler((*Service).ProcessProviderMessage),
+	pubsub.SubscriptionConfig[*provider.Message]{
+		Handler: pubsub.MethodHandler((*Service).ProcessProviderEvent),
 	},
 )
 
@@ -23,8 +22,8 @@ var _ = pubsub.NewSubscription(
 //
 // This uses Encore's pubsub package, learn more: https://encore.dev/docs/primitives/pubsub
 var _ = pubsub.NewSubscription(
-	llm.LLMMessageTopic, "llm-message-sub",
-	pubsub.SubscriptionConfig[*llm.BotResponse]{
+	llmprovider.LLMMessageTopic, "llm-message-sub",
+	pubsub.SubscriptionConfig[*llmprovider.BotResponse]{
 		Handler: pubsub.MethodHandler((*Service).ProcessLLMMessage),
 	},
 )

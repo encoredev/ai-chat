@@ -21,7 +21,6 @@ import (
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
 	"encore.app/chat/provider/discord/db"
-	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 	"encore.dev/rlog"
 	"encore.dev/storage/sqldb"
@@ -101,14 +100,14 @@ func (p *Service) ListChannels(ctx context.Context) (*provider.ListChannelsRespo
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting guilds")
 	}
-	var channelInfos []client.ChannelInfo
+	var channelInfos []provider.ChannelInfo
 	for _, guild := range guilds {
 		channels, err := p.client.GuildChannels(guild.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting guilds")
 		}
 		for _, channel := range channels {
-			channelInfos = append(channelInfos, client.ChannelInfo{
+			channelInfos = append(channelInfos, provider.ChannelInfo{
 				Provider: chatdb.ProviderDiscord,
 				ID:       channel.ID,
 				Name:     channel.Name,
@@ -149,10 +148,10 @@ func (p *Service) subscribeToMessages(ctx context.Context, fn func(ctx context.C
 // GetUser returns a user by ID.
 //
 //encore:api private method=GET path=/discord/users/:userID
-func (p *Service) GetUser(ctx context.Context, userID string) (*client.User, error) {
+func (p *Service) GetUser(ctx context.Context, userID string) (*provider.User, error) {
 	_, username, isBot := strings.Cut(userID, ":")
 	if isBot {
-		return &client.User{
+		return &provider.User{
 			ID:   userID,
 			Name: username,
 		}, nil
@@ -161,7 +160,7 @@ func (p *Service) GetUser(ctx context.Context, userID string) (*client.User, err
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting user")
 	}
-	return &client.User{
+	return &provider.User{
 		ID:   userID,
 		Name: user.GlobalName,
 	}, nil
@@ -273,11 +272,11 @@ func (c *Service) SendMessage(ctx context.Context, channelID string, req *provid
 }
 
 // toProviderMessage converts a Discord message to the generic provider message.
-func toProviderMessage(msg *discord.Message) *client.Message {
+func toProviderMessage(msg *discord.Message) *provider.Message {
 	if msg.Content == "" || msg.Type != discord.MessageTypeDefault {
 		return nil
 	}
-	author := client.User{
+	author := provider.User{
 		ID:   msg.Author.ID,
 		Name: msg.Author.Username,
 	}
@@ -288,7 +287,7 @@ func toProviderMessage(msg *discord.Message) *client.Message {
 			author.BotID = hook.BotID
 		}
 	}
-	return &client.Message{
+	return &provider.Message{
 		Provider:   chatdb.ProviderDiscord,
 		ProviderID: msg.ID,
 		ChannelID:  msg.ChannelID,
@@ -306,7 +305,7 @@ func (c *Service) ListMessages(ctx context.Context, channelID string, req *provi
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting messages")
 	}
-	var messages []*client.Message
+	var messages []*provider.Message
 	for i := len(msgs) - 1; i >= 0; i-- {
 		if msg := toProviderMessage(msgs[i]); msg != nil {
 			messages = append(messages, msg)
@@ -318,14 +317,14 @@ func (c *Service) ListMessages(ctx context.Context, channelID string, req *provi
 // ChannelInfo returns information about a channel.
 //
 //encore:api private method=GET path=/discord/channels/:channelID/info
-func (c *Service) ChannelInfo(ctx context.Context, channelID string) (client.ChannelInfo, error) {
+func (c *Service) ChannelInfo(ctx context.Context, channelID string) (provider.ChannelInfo, error) {
 	resp, err := c.client.Channel(channelID)
 	if err != nil {
-		return client.ChannelInfo{}, errors.Wrap(err, "error getting channel info")
+		return provider.ChannelInfo{}, errors.Wrap(err, "error getting channel info")
 	}
-	return client.ChannelInfo{
+	return provider.ChannelInfo{
 		Provider: chatdb.ProviderDiscord,
-		ID:       client.ChannelID(resp.ID),
+		ID:       provider.ChannelID(resp.ID),
 		Name:     resp.Name,
 	}, nil
 }

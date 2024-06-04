@@ -1,6 +1,8 @@
 package fns
 
 import (
+	"io"
+
 	"golang.org/x/exp/rand"
 )
 
@@ -60,4 +62,8 @@ func SelectRandom[T any](slice []T, n int) []T {
 	}
 	return rtn
 
+}
+
+func CloseIgnore(stream io.Closer) {
+	_ = stream.Close()
 }

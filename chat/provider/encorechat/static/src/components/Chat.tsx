@@ -1,50 +1,71 @@
-import {useMemo, useCallback, useEffect} from "react";
+import {useMemo, useCallback, useEffect, useState} from "react";
 
-import { MainContainer, Sidebar, ConversationList, Conversation, Avatar, ChatContainer, ConversationHeader, MessageGroup, Message,MessageList, MessageInput, TypingIndicator } from "@chatscope/chat-ui-kit-react";
+import {
+    MainContainer,
+    Sidebar,
+    Avatar,
+    ChatContainer,
+    ConversationHeader,
+    MessageGroup,
+    Message,
+    MessageList,
+    MessageInput,
+    TypingIndicator,
+    AddUserButton
+} from "@chatscope/chat-ui-kit-react";
 
 import {
     useChat,
     ChatMessage,
     MessageContentType,
     MessageDirection,
-    MessageStatus
+    MessageStatus, Participant,
 } from "@chatscope/use-chat";
-import {MessageContent, TextContent, User} from "@chatscope/use-chat";
-import {Row} from "react-bootstrap";
-
-export const Chat = ({user}:{user:User}) => {
-    
-    // Get all chat related values and methods from useChat hook 
+import {MessageContent, TextContent, User, Conversation as Conv} from "@chatscope/use-chat";
+import {ExampleChatService} from "./ChatService";
+import {ProfileModal} from "./ProfileModal";
+import {AddBotModal} from "./AddBotModal";
+export const Chat = ({user, channelID}:{user:User, channelID:string}) => {
+    // Get all chat related values and methods from useChat hook
     const {
-        currentMessages, conversations, activeConversation, setActiveConversation,  sendMessage, getUser, currentMessage, setCurrentMessage,
-        sendTyping, setCurrentUser
+        addConversation,
+        currentMessages, conversations,
+        activeConversation,
+        setActiveConversation,
+        sendMessage,
+        getUser,
+        currentMessage,
+        setCurrentMessage,
+        sendTyping,
+        setCurrentUser,
+        service,
+        addUser
     } = useChat();
 
+    useState(() => {
+        let conv = new Conv({
+            id: channelID,
+            participants: [new Participant(
+              {id: user.id}
+            )]}
+        );
+        addConversation(conv);
+        return conv
+    })
+
+    const chatService = service as ExampleChatService;
     useEffect( () => {
-        setActiveConversation(conversations[0].id);
-    },[activeConversation, setActiveConversation]);
+        addUser(user)
+        setActiveConversation(channelID);
+        chatService.joinChannel(channelID);
+    },[]);
 
     useEffect( () => {
         setCurrentUser(user);
     },[user, setCurrentUser]);
-    
-    // Get current user data
-    const [currentUserAvatar, currentUserName] = useMemo(() => {
 
-        if (activeConversation) {
-            const participant = activeConversation.participants.length > 0 ? activeConversation.participants[0] : undefined;
-
-            if (participant) {
-                const user = getUser(participant.id);
-                if (user) {
-                    return [<Avatar src={user.avatar} />, user.username]
-                }
-            }
-        }
-
-        return [undefined, undefined];
-
-    }, [activeConversation, getUser]);
+    const [userProfile, setUserProfile] = useState<User>();
+    const [addUserShow, setAddUserShow] = useState(false);
 
     const handleChange = (value:string) => {
         // Send typing indicator to the active conversation
@@ -117,49 +138,50 @@ export const Chat = ({user}:{user:User}) => {
         }, [activeConversation, getUser],
     );
     
-    return (<MainContainer responsive>
-        <Sidebar position="left" scrollable>
-            <ConversationHeader style={{backgroundColor:"#fff"}}>
+    return (
 
-                    <Avatar src={user.avatar} />
-                    <ConversationHeader.Content>
-                        {user.username}
-                    </ConversationHeader.Content>
+                  <MainContainer responsive
+                                 style={{
+                                     height: '600px'
+                                 }}>
+                      <ProfileModal show={userProfile !== undefined} user={userProfile}  onHide={() => setUserProfile(undefined)}/>
+                      <AddBotModal show={addUserShow} channelID={channelID} onHide={() => setAddUserShow(false)}/>
+                      <Sidebar position="left" scrollable>
+                          {activeConversation?.participants.map((p) =>
+                            <ConversationHeader style={{backgroundColor: "#fff"}} onClick={() => setUserProfile(getUser(p.id))}>
+                                <Avatar src={getUser(p.id)?.avatar}/>
+                                <ConversationHeader.Content>
+                                    {getUser(p.id)?.username}
+                                </ConversationHeader.Content>
+                            </ConversationHeader>
+                          )}
+                          <AddUserButton onClick={()=>setAddUserShow(true)}>
+                              Add Bot
+                          </AddUserButton>
+                      </Sidebar>
 
-            </ConversationHeader>
-            <ConversationHeader style={{backgroundColor:"#fff"}}>
+                      <ChatContainer>
+                          <MessageList typingIndicator={getTypingIndicator()}>
+                              {activeConversation && currentMessages.map((g) => <MessageGroup key={g.id}
+                                                                                              direction={g.direction}>
+                                  <MessageGroup.Messages>
+                                      {g.messages.map((m: ChatMessage<MessageContentType>) =>
+                                        <Message key={m.id} model={{
+                                            type: "html",
+                                            payload: m.content,
+                                            direction: m.direction,
+                                            position: "normal"
+                                        }}>
+                                            {m.direction === MessageDirection.Incoming && m.senderId !== user.id &&
+                                              <Avatar src={getUser(m.senderId)?.avatar} name={m.senderId}/>}
+                                        </Message>
+                                      )}
+                                  </MessageGroup.Messages>
+                              </MessageGroup>)}
+                          </MessageList>
+                          <MessageInput value={currentMessage} onChange={handleChange} onSend={handleSend}
+                                        disabled={!activeConversation} attachButton={false} placeholder="Type here..."/>
+                      </ChatContainer>
 
-                <Avatar src={user.avatar} />
-                <ConversationHeader.Content>
-                    {user.username}
-                </ConversationHeader.Content>
-
-            </ConversationHeader>
-        </Sidebar>
-        
-        <ChatContainer>
-            {activeConversation && <ConversationHeader>
-                {currentUserAvatar}
-                <ConversationHeader.Content userName={currentUserName} />
-            </ConversationHeader>}
-            <MessageList typingIndicator={getTypingIndicator()}>
-                {activeConversation && currentMessages.map( (g) => <MessageGroup key={g.id} direction={g.direction}>
-                    <MessageGroup.Messages>
-                        {g.messages.map((m:ChatMessage<MessageContentType>) => <Message key={m.id} model={{
-                            type: "html",
-                            payload: m.content,
-                            direction: m.direction,
-                            position: "normal"
-                        }} >
-                              {m.direction === MessageDirection.Incoming && m.senderId !== user.id && <Avatar src={getUser(m.senderId)?.avatar} name={"Emily"} /> }
-                          </Message>
-                            )}
-                    </MessageGroup.Messages>
-                </MessageGroup>)}
-            </MessageList>
-            <MessageInput value={currentMessage} onChange={handleChange} onSend={handleSend} disabled={!activeConversation} attachButton={false} placeholder="Type here..."/>
-        </ChatContainer>
-        
-    </MainContainer>);
-    
+                  </MainContainer>);
 }
