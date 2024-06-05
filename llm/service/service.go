@@ -78,7 +78,7 @@ func initService() (*Service, error) {
 //
 //encore:api private path=/ai/instruct
 func (svc *Service) Instruct(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
-	return svc.continueChat(ctx, req, false)
+	return svc.continueChat(ctx, req, true)
 }
 
 // ContinueChat continues a chat conversation with the AI provider. It is called per channel and llm provider
@@ -102,7 +102,7 @@ func (svc *Service) Prepopulate(ctx context.Context, req *provider.ChatRequest) 
 func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(introPrompt), req.Channel.Name)
 	req.Type = provider.TaskTypeJoin
-	return svc.continueChat(ctx, req, false)
+	return svc.continueChat(ctx, req, true)
 }
 
 // Goodbye sends a message to the AI provider to say goodbye to the channel.
@@ -111,7 +111,7 @@ func (svc *Service) Introduce(ctx context.Context, req *provider.ChatRequest) (*
 func (svc *Service) Goodbye(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
 	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(goodbyePrompt), req.Channel)
 	req.Type = provider.TaskTypeLeave
-	return svc.continueChat(ctx, req, false)
+	return svc.continueChat(ctx, req, true)
 }
 
 type GenerateBotProfileRequest struct {
