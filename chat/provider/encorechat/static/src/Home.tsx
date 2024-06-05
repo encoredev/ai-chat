@@ -7,7 +7,7 @@ import {Card, Form} from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 
 export const Home = () => {
-  let [username, setUsername] = useState("Sam");
+  let [username, setUsername] = useState("");
   const [status, setStatus] = useState('typing');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,15 +22,16 @@ export const Home = () => {
   return (
     <Card style={{width: '18rem'}}>
       <Card.Img variant="top" src={logo}/>
-      <Card.Body>
+      <Card.Body style={{textAlign:"center"}}>
         <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
+          <Form.Label>Join the conversation</Form.Label>
           <Form.Control type="text" placeholder="Your name" value={username}
                         onChange={e => setUsername(e.target.value)}/>
         </Form.Group>
         <Button variant="primary" onClick={joinChat} disabled={
           username.length === 0 ||
           status === 'submitting'
-        }>Join Chat</Button>
+        }>Start</Button>
       </Card.Body>
     </Card>
   )

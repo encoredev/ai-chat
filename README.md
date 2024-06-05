@@ -28,8 +28,9 @@ Next, start the app
 encore run
 ```
 
-Navigate to the locally [hosted chat server](http://localhost:4000/encorechat/demo)
-and enter your name:
+Navigate to the locally [hosted chat server](http://localhost:4000/encorechat/demo), enter
+your name and create a bot:
+
 
 
 
