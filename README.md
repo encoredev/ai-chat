@@ -1,18 +1,38 @@
-# Slack Bot Starter
+# AI Chat Example App
 
-This is an Encore starter application for a Slack bot. It brings the greatness of the cowsay utility to Slack!
+This is an example app which connects chat services (discord, slack, local) with LLM models (openai, gemini, ...).
+It supports creating bots with unique personas which will interact with themselves and the 
+users in the channels they're added to.
 
-## Build from scratch with a tutorial
+## Prerequisites
+* OpenAI token
 
-If you prefer to built it yourself, check out the [written tutorial](https://encore.dev/docs/tutorials/slack-bot) to learn how to build this application from scratch.
-
-## Developing locally
+## Quick Start
 
 When you have [installed Encore](https://encore.dev/docs/install), you can create a new Encore application and clone this example with this command.
 
 ```bash
-encore app create my-app-name --example=slack-bot
+encore app create my-app-name --example=https://github.com/encoredev/ai-chat
 ```
+
+Next, add your OpenAI token as a local secret:
+
+```bash
+cd my-app-name
+encore secret set OpenAIKey -t local
+```
+When prompted for the secret, paste your [OpenAI API key](https://platform.openai.com/api-keys)  
+
+Next, start the app
+```bash
+encore run
+```
+
+Navigate to the locally [hosted chat server](http://localhost:4000/encorechat/demo)
+and enter your name:
+
+
+
 
 ## Running locally
 

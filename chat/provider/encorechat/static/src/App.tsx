@@ -9,9 +9,13 @@ import {Home} from "./Home";
 
 function App() {
   return (
-    <BrowserRouter basename="/encorechat/demo">
-      <EncoreRoutes/>
-    </BrowserRouter>
+    <div className={"App"}>
+      <div className={"middle"}>
+        <BrowserRouter basename="/encorechat/demo">
+          <EncoreRoutes/>
+        </BrowserRouter>
+      </div>
+    </div>
   );
 }
 
