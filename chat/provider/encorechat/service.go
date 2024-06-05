@@ -60,7 +60,7 @@ func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path := strings.TrimPrefix(r.URL.Path, "/encorechat/demo")
-	if path == "/" {
+	if path == "/" || strings.HasPrefix(path, "/chat") {
 		path = "/index.html"
 	}
 	path = "/static/build" + path
