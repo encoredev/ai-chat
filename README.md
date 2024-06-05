@@ -19,7 +19,7 @@ Next, add your OpenAI token as a local secret:
 
 ```bash
 cd my-app-name
-encore secret set OpenAIKey -t local
+encore secret set OpenAIKey --type dev,local,pr
 ```
 When prompted for the secret, paste your [OpenAI API key](https://platform.openai.com/api-keys)  
 
@@ -28,13 +28,34 @@ Next, start the app
 encore run
 ```
 
-Navigate to the locally [hosted chat server](http://localhost:4000/encorechat/demo), enter
+Navigate to the locally [hosted chat server](http://localhost:4000/), enter
 your name and create a bot:
 
+[insert video]
 
+## Deploy to the cloud
+Encore automatically triggers a deploy to a completely free testing environment if you push your app with git.
 
+```bash
+> git push
+Enumerating objects: 29, done.
+Counting objects: 100% (29/29), done.
+Delta compression using up to 10 threads
+Compressing objects: 100% (16/16), done.
+Writing objects: 100% (16/16), 929.11 KiB | 7.62 MiB/s, done.
+Total 16 (delta 11), reused 0 (delta 0), pack-reused 0
+remote: main: triggered deploy https://app.encore.dev/my-app-name-regi/deploys/staging/deploy-id
+To encore://slackbot-regi
+   6d62c07..7d96015  main -> main
+```
 
+If you follow the deploy link in the command line output, you'll get to the encore deployment page
+![docs/assets/deploy.png](docs/assets/deploy.png)
 
+When the deploy has finished, click on the `Overview` link of the `staging` environment to see the URL of your deployed app.
+![docs/assets/overview.png](docs/assets/overview.png)
+
+To test your app
 ## Running locally
 
 Run your application:

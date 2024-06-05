@@ -53,13 +53,13 @@ func (p *Service) Ping(ctx context.Context) error {
 //go:embed static/build/*
 var staticFiles embed.FS
 
-//encore:api public raw path=/encorechat/demo/!fallback
+//encore:api public raw path=/!fallback
 func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 	if !cfg.Enabled() {
 		http.Error(w, "not enabled", http.StatusNotFound)
 		return
 	}
-	path := strings.TrimPrefix(r.URL.Path, "/encorechat/demo")
+	path := r.URL.Path
 	if path == "/" || strings.HasPrefix(path, "/chat") {
 		path = "/index.html"
 	}

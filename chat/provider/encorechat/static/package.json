@@ -2,7 +2,7 @@
   "name": "encore-chat",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/encorechat/demo/",
+  "homepage": "/",
   "dependencies": {
     "@chatscope/chat-ui-kit-react": "^2.0.3",
     "@chatscope/chat-ui-kit-styles": "^1.4.0",

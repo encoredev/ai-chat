@@ -9,6 +9,7 @@ require (
 	encore.dev v1.37.0
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/cockroachdb/errors v1.11.1
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -17,7 +18,6 @@ require (
 	golang.ngrok.com/ngrok v1.9.1
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 	google.golang.org/api v0.180.0
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -76,4 +76,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/grpc v1.63.2 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

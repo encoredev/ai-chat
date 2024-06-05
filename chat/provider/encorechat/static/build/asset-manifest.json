@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/encorechat/demo/static/css/main.ae363b03.css",
-    "main.js": "/encorechat/demo/static/js/main.7a451ef4.js",
-    "static/js/453.837f1c87.chunk.js": "/encorechat/demo/static/js/453.837f1c87.chunk.js",
-    "static/media/aichat.png": "/encorechat/demo/static/media/aichat.559140e0d5a4dae96db8.png",
-    "static/media/anon.png": "/encorechat/demo/static/media/anon.e0773f6e692506f36a5f.png",
-    "index.html": "/encorechat/demo/index.html",
-    "main.ae363b03.css.map": "/encorechat/demo/static/css/main.ae363b03.css.map",
-    "main.7a451ef4.js.map": "/encorechat/demo/static/js/main.7a451ef4.js.map",
-    "453.837f1c87.chunk.js.map": "/encorechat/demo/static/js/453.837f1c87.chunk.js.map"
+    "main.css": "/static/css/main.ae363b03.css",
+    "main.js": "/static/js/main.5cbff63d.js",
+    "static/js/453.837f1c87.chunk.js": "/static/js/453.837f1c87.chunk.js",
+    "static/media/aichat.png": "/static/media/aichat.559140e0d5a4dae96db8.png",
+    "static/media/anon.png": "/static/media/anon.e0773f6e692506f36a5f.png",
+    "index.html": "/index.html",
+    "main.ae363b03.css.map": "/static/css/main.ae363b03.css.map",
+    "main.5cbff63d.js.map": "/static/js/main.5cbff63d.js.map",
+    "453.837f1c87.chunk.js.map": "/static/js/453.837f1c87.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.ae363b03.css",
-    "static/js/main.7a451ef4.js"
+    "static/js/main.5cbff63d.js"
   ]
 }

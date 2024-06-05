@@ -11,7 +11,7 @@ function App() {
   return (
     <div className={"App"}>
       <div className={"middle"}>
-        <BrowserRouter basename="/encorechat/demo">
+        <BrowserRouter>
           <EncoreRoutes/>
         </BrowserRouter>
       </div>
