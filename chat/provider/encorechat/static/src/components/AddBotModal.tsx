@@ -3,11 +3,17 @@ import Modal from 'react-bootstrap/Modal';
 import {Form} from "react-bootstrap";
 import {useState} from "react";
 
+export interface AddBotStatus {
+  botName: string;
+  status: "success" | "failure" | "creating";
+}
+
 export function AddBotModal(props:any) {
   const [botName, setBotName] = useState("");
   const [botPrompt, setBotPrompt] = useState("");
   const channelID = props.channelID;
   const apiURL = window.location.port === "3000" ? "http://localhost:4000" : window.location.protocol + "//" + window.location.host;
+  const onStatusChange = props.statusChange
 
   const addToChannel = async (botID: string) => {
     fetch(`${apiURL}/chat/provider/encorechat/channels/${channelID}/bots/${botID}`, {
@@ -15,9 +21,26 @@ export function AddBotModal(props:any) {
       headers: {
         "Content-Type": "application/json",
       },
+    }).then((resp) => {
+      if (resp.ok) {
+        if(onStatusChange) {
+          onStatusChange()
+        }
+      } else {
+        if(onStatusChange) {
+          onStatusChange({botName: botName, status: "failure"})
+        }
+      }
+    }).catch((e) => {
+      if(onStatusChange) {
+        onStatusChange({botName: botName, status: "failure"})
+      }
     })
   }
   const createBot = async () => {
+      if(onStatusChange) {
+        onStatusChange({botName: botName, status: "creating"})
+      }
       fetch(`${apiURL}/bots`, {
         method: "POST",
         headers: {
@@ -33,6 +56,14 @@ export function AddBotModal(props:any) {
           resp.json().then((data) => {
             addToChannel(data.ID)
           })
+        } else {
+          if(onStatusChange) {
+            onStatusChange({botName: botName, status: "failure"})
+          }
+        }
+      }).catch((e) => {
+        if(onStatusChange) {
+          onStatusChange({botName: botName, status: "failure"})
         }
       })
       props.onHide();
