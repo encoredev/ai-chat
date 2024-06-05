@@ -71,6 +71,7 @@ export class ExampleChatService implements IChatService {
   updateState: UpdateState;
   ws: ReconnectingWebSocket;
   user: User;
+  reconnect: boolean = false;
 
   eventHandlers: EventHandlers = {
     onMessage: () => {},
@@ -90,6 +91,27 @@ export class ExampleChatService implements IChatService {
     let proto = document.location.protocol === "https:" ? "wss://" : "ws://";
     let host = document.location.port === "3000" ? "localhost:4000" : document.location.host ;
     this.ws = new ReconnectingWebSocket(proto + host + `/encorechat/subscribe`);
+
+    this.ws.addEventListener("open", () => {
+      if (!this.reconnect) {
+        return;
+      }
+      this.ws.send(JSON.stringify({
+        type: "reconnect",
+        conversations: this.storage?.getState().conversations.map(
+          (conversation: Conversation) => {
+            return {
+              id: conversation.id,
+              lastMessageId: this.storage?.getState().messages[conversation.id].at(-1)?.id
+            }
+          }
+        ),
+        userId: user.id,
+      }));
+    })
+    this.ws.addEventListener("close", () => {
+      this.reconnect = true
+    })
     this.ws.addEventListener("message", (event) => {
       let msg: ServiceMessage
       try {

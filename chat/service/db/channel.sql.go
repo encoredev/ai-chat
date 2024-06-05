@@ -250,7 +250,7 @@ func (q *Queries) UpsertBotChannel(ctx context.Context, db DBTX, arg UpsertBotCh
 	return bot, err
 }
 
-const upsertChannel = `-- name: GetChannel :one
+const upsertChannel = `-- name: UpsertChannel :one
 INSERT INTO channel (id, provider_id, provider, name)
 SELECT coalesce(id, new_id), $1, $2, $3
 FROM (VALUES(gen_random_uuid())) AS data(new_id) LEFT JOIN channel c

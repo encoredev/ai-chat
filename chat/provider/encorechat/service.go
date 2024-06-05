@@ -94,7 +94,7 @@ func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.
 	return nil
 }
 
-func (s *Service) sendChannelHistory(ctx context.Context, channelID string, client *chat.Client) error {
+func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afterID string, client *chat.Client) error {
 	channel, ok := s.data.GetChannel(ctx, channelID)
 	if !ok {
 		_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
@@ -130,7 +130,12 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, clie
 				Avatar:         bot.GetAvatarURL(),
 			})
 		}
-		msgs, err := s.data.GetChannelMessages(ctx, channel)
+		var msgs []*chatdb.Message
+		if afterID != "" {
+			msgs, err = s.data.GetChannelMessagesAfter(ctx, channel, afterID)
+		} else {
+			msgs, err = s.data.GetChannelMessages(ctx, channel)
+		}
 		if err != nil {
 			return errors.Wrap(err, "get channel messages")
 		}
@@ -153,8 +158,16 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, clie
 }
 
 func (s *Service) handleClientMessage(ctx context.Context, clientMsg *chat.ClientMessage) error {
-	if clientMsg.Type == "join" && clientMsg.Client != nil {
-		return s.sendChannelHistory(ctx, clientMsg.ConversationId, clientMsg.Client)
+	if clientMsg.Type == "reconnect" && clientMsg.Client != nil {
+		for _, channel := range clientMsg.Conversations {
+			err := s.sendChannelHistory(ctx, channel.ID, channel.LastMessageID, clientMsg.Client)
+			if err != nil {
+				return errors.Wrap(err, "send channel history")
+			}
+		}
+		return nil
+	} else if clientMsg.Type == "join" && clientMsg.Client != nil {
+		return s.sendChannelHistory(ctx, clientMsg.ConversationId, "", clientMsg.Client)
 	} else if clientMsg.Type != "message" {
 		return nil
 	}

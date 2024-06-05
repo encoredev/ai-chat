@@ -10,6 +10,7 @@ import (
 	botdb "encore.app/bot/db"
 	"encore.app/chat/service/db"
 	"encore.app/pkg/fns"
+	"encore.dev/rlog"
 	"encore.dev/storage/sqldb"
 	"encore.dev/types/uuid"
 )
@@ -45,6 +46,20 @@ func (d *DataSource) GetChannelUsers(ctx context.Context, c *db.Channel) ([]*db.
 func (d *DataSource) GetChannelMessages(ctx context.Context, c *db.Channel) ([]*db.Message, error) {
 	q := db.New()
 	messages, err := q.ListMessagesInChannel(ctx, chatDb.Stdlib(), c.ID)
+	if err != nil {
+		return nil, errors.Wrap(err, "list messages")
+	}
+	slices.Reverse(messages)
+	return messages, nil
+}
+
+func (d *DataSource) GetChannelMessagesAfter(ctx context.Context, c *db.Channel, providerMsgID string) ([]*db.Message, error) {
+	rlog.Info("GetChannelMessagesAfter", "channel", c.ID, "providerMsgID", providerMsgID)
+	q := db.New()
+	messages, err := q.ListMessagesInChannelAfter(ctx, chatDb.Stdlib(), db.ListMessagesInChannelAfterParams{
+		ChannelID:  c.ID,
+		ProviderID: providerMsgID,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "list messages")
 	}

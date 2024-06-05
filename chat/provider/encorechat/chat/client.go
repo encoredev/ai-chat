@@ -30,14 +30,19 @@ const (
 )
 
 type ClientMessage struct {
-	ID             string  `json:"id"`
-	Type           string  `json:"type"`
-	UserId         string  `json:"userId"`
-	ConversationId string  `json:"conversationId"`
-	Content        string  `json:"content"`
-	Avatar         string  `json:"avatar"`
-	Username       string  `json:"username"`
-	Client         *Client `json:"-"`
+	ID             string `json:"id"`
+	Type           string `json:"type"`
+	UserId         string `json:"userId"`
+	ConversationId string `json:"conversationId"`
+	Content        string `json:"content"`
+	Avatar         string `json:"avatar"`
+	Username       string `json:"username"`
+	Conversations  []struct {
+		ID            string `json:"id"`
+		LastMessageID string `json:"lastMessageId"`
+	}
+
+	Client *Client `json:"-"`
 }
 
 // Client is a middleman between the websocket connection and the svc.
@@ -57,7 +62,7 @@ type Client struct {
 }
 
 func (c *Client) WantMessage(msg *ClientMessage) bool {
-	if msg.Client == c {
+	if msg.Client == c || msg.Type == "reconnect" {
 		return false
 	}
 	c.mu.Lock()
@@ -112,10 +117,15 @@ func (c *Client) readPump(ctx context.Context) {
 		}
 		c.mu.Lock()
 		switch clientMsg.Type {
+		case "reconnect":
+			for _, channel := range clientMsg.Conversations {
+				c.channels[channel.ID] = true
+			}
 		case "join":
 			c.channels[clientMsg.ConversationId] = true
 		case "leave":
 			delete(c.channels, clientMsg.ConversationId)
+
 		}
 		c.mu.Unlock()
 		clientMsg.Client = c

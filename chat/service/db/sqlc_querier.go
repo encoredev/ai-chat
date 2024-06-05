@@ -25,6 +25,7 @@ type Querier interface {
 	ListChannelsByProvider(ctx context.Context, db DBTX, provider Provider) ([]*Channel, error)
 	ListChannelsWithBots(ctx context.Context, db DBTX) ([]*Channel, error)
 	ListMessagesInChannel(ctx context.Context, db DBTX, channelID uuid.UUID) ([]*Message, error)
+	ListMessagesInChannelAfter(ctx context.Context, db DBTX, arg ListMessagesInChannelAfterParams) ([]*Message, error)
 	ListUsers(ctx context.Context, db DBTX) ([]*User, error)
 	ListUsersByProvider(ctx context.Context, db DBTX, provider Provider) ([]*User, error)
 	ListUsersInChannel(ctx context.Context, db DBTX, channelID uuid.UUID) ([]*User, error)

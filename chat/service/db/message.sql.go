@@ -122,3 +122,46 @@ func (q *Queries) ListMessagesInChannel(ctx context.Context, db DBTX, channelID 
 	}
 	return items, nil
 }
+
+const listMessagesInChannelAfter = `-- name: ListMessagesInChannelAfter :many
+WITH targetTimestamp AS (
+    SELECT timestamp FROM message m WHERE m.provider_id = $2
+)
+SELECT id, provider_id, channel_id, author_id, content, timestamp, deleted FROM message m WHERE m.channel_id = $1 and timestamp > (select timestamp from targetTimestamp) order by timestamp
+`
+
+type ListMessagesInChannelAfterParams struct {
+	ChannelID  uuid.UUID
+	ProviderID string
+}
+
+func (q *Queries) ListMessagesInChannelAfter(ctx context.Context, db DBTX, arg ListMessagesInChannelAfterParams) ([]*Message, error) {
+	rows, err := db.QueryContext(ctx, listMessagesInChannelAfter, arg.ChannelID, arg.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Message{}
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProviderID,
+			&i.ChannelID,
+			&i.AuthorID,
+			&i.Content,
+			&i.Timestamp,
+			&i.Deleted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

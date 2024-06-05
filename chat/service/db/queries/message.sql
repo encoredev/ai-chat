@@ -14,3 +14,9 @@ ORDER BY timestamp DESC LIMIT 1;
 
 -- name: ListMessagesInChannel :many
 SELECT * FROM message m WHERE m.channel_id = $1 and timestamp > NOW() - interval '3 days' order by timestamp desc LIMIT 25;
+
+-- name: ListMessagesInChannelAfter :many
+WITH targetTimestamp AS (
+    SELECT timestamp FROM message m WHERE m.provider_id = $2
+)
+SELECT * FROM message m WHERE m.channel_id = $1 and timestamp > (select timestamp from targetTimestamp) order by timestamp;
