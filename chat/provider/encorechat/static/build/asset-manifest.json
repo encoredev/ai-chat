@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/encorechat/demo/static/css/main.0c7f9f85.css",
-    "main.js": "/encorechat/demo/static/js/main.605f7568.js",
+    "main.js": "/encorechat/demo/static/js/main.e97dc415.js",
     "static/js/453.837f1c87.chunk.js": "/encorechat/demo/static/js/453.837f1c87.chunk.js",
     "static/media/anon.png": "/encorechat/demo/static/media/anon.e0773f6e692506f36a5f.png",
     "index.html": "/encorechat/demo/index.html",
     "main.0c7f9f85.css.map": "/encorechat/demo/static/css/main.0c7f9f85.css.map",
-    "main.605f7568.js.map": "/encorechat/demo/static/js/main.605f7568.js.map",
+    "main.e97dc415.js.map": "/encorechat/demo/static/js/main.e97dc415.js.map",
     "453.837f1c87.chunk.js.map": "/encorechat/demo/static/js/453.837f1c87.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.0c7f9f85.css",
-    "static/js/main.605f7568.js"
+    "static/js/main.e97dc415.js"
   ]
 }
