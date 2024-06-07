@@ -1,39 +1,41 @@
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
-import {Col, Row, Container, Image} from "react-bootstrap";
-import {User} from "@chatscope/use-chat";
+import { FC, useEffect, useState } from "react";
+import { User } from "@chatscope/use-chat";
+import { DialogTitle } from "@headlessui/react";
+import Modal, { ModalProps } from "./Modal.tsx";
 
-export function ProfileModal(props:any) {
-  if(props.user === undefined){
-    return (<></>);
+const ProfileModal: FC<
+  ModalProps & {
+    user?: User;
   }
+> = ({ user, show, onHide }) => {
+  const [currentUser, setCurrentUser] = useState<User | undefined>(user);
+
+  useEffect(() => {
+    if (user) setCurrentUser(user);
+  }, [user]);
+
   return (
-    <Modal
-      {...props}
-      size="lg"
-      aria-labelledby="contained-modal-title-vcenter"
-      centered
-    >
-      <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
-          {props.user.username}
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body >
-        <Container>
-          <Row>
-            <Col md="auto">
-              <Image src={props.user.avatar} width="250" height="250" rounded />
-            </Col>
-            <Col>
-              {props.user.bio}
-            </Col>
-          </Row>
-        </Container>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={props.onHide}>Close</Button>
-      </Modal.Footer>
+    <Modal show={show} onHide={onHide}>
+      <div>
+        <img src={currentUser?.avatar} className="w-full rounded-md" />
+        <div className="mt-3 sm:mt-5">
+          <DialogTitle
+            as="h3"
+            className="flex items-center text-black text-2xl font-semibold leading-6"
+          >
+            {currentUser?.username}
+            <span className="ml-2.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-green">
+              <span className="sr-only">Online</span>
+            </span>
+          </DialogTitle>
+          <div className="mt-2 text-gray-500">
+            <h4 className="font-semibold">Bio</h4>
+            <p className="text-sm">{currentUser?.bio}</p>
+          </div>
+        </div>
+      </div>
     </Modal>
   );
-}
+};
+
+export default ProfileModal;

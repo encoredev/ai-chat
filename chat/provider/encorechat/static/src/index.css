@@ -1,17 +1,53 @@
-body, html, #root {
-  width: 100%;
-  height:100%;
-  margin:0;
-  padding:0;
-  box-sizing: border-box;
-  font-size: 16px;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply !bg-gray-900 !text-white;
+  font-family: Arial, Helvetica, sans-serif;
 }
+
+.cs-message-input__content-editor, .cs-message-input__content-editor-wrapper {
+  @apply !bg-gray-700 !text-white;
+}
+
+.cs-message-input__content-editor-wrapper {
+  @apply !rounded-md;
+}
+
+.cs-message-input__content-editor[data-placeholder]:empty:before {
+  @apply !text-gray-500;
+}
+
+.cs-message-input__tools {
+  @apply !hidden;
+}
+
+.cs-message__content {
+  @apply !bg-transparent !rounded-none;
+}
+
+.cs-message-group__content, .cs-message-group__messages, .cs-message {
+  @apply !w-full;
+}
+
+.cs-typing-indicator__dot {
+  @apply !bg-white;
+}
+
+.cs-typing-indicator__text {
+  @apply !text-white;
+}
+
+.ps__thumb-y,
+.ps__rail-y:hover .ps__thumb-y,
+.ps__rail-y:active .ps__thumb-y {
+  @apply !bg-gray-500;
+}
+
+.ps__rail-y:hover,
+.ps .ps__rail-y:hover,
+.ps__rail-y {
+  @apply !bg-gray-700;
+}
+

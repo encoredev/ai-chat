@@ -5,18 +5,19 @@
 import {
   Conversation,
   ConversationId,
-  ConversationRole,
   IChatService,
   MessageStatus,
   Participant,
   Presence,
-  TypingUsersList,
   User,
   UserConnectedEvent,
   UserStatus,
 } from "@chatscope/use-chat";
-import anonAvatar from "../assets/anon.png";
-import {ChatEventType, MessageContentType, MessageDirection} from "@chatscope/use-chat/dist/enums";
+import {
+  ChatEventType,
+  MessageContentType,
+  MessageDirection,
+} from "@chatscope/use-chat/dist/enums";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import {
   ChatEventHandler,
@@ -24,9 +25,13 @@ import {
   SendTypingServiceParams,
   UpdateState,
 } from "@chatscope/use-chat/dist/Types";
-import {IStorage} from "@chatscope/use-chat/dist/interfaces";
-import {ChatEvent, MessageEvent, UserTypingEvent} from "@chatscope/use-chat/dist/events";
-import {ChatMessage} from "@chatscope/use-chat/dist/ChatMessage";
+import { IStorage } from "@chatscope/use-chat/dist/interfaces";
+import {
+  ChatEvent,
+  MessageEvent,
+  UserTypingEvent,
+} from "@chatscope/use-chat/dist/events";
+import { ChatMessage } from "@chatscope/use-chat/dist/ChatMessage";
 
 type EventHandlers = {
   onMessage: ChatEventHandler<
@@ -82,64 +87,74 @@ export class ExampleChatService implements IChatService {
     onUserTyping: () => {},
   };
 
-
-
-  constructor(storage: IStorage, update: UpdateState, user:User) {
+  constructor(storage: IStorage, update: UpdateState, user: User) {
     this.storage = storage;
     this.updateState = update;
     this.user = user;
     let proto = document.location.protocol === "https:" ? "wss://" : "ws://";
-    let host = document.location.port === "3000" ? "localhost:4000" : document.location.host ;
+    let host = import.meta.env.DEV ? "localhost:4000" : document.location.host;
     this.ws = new ReconnectingWebSocket(proto + host + `/encorechat/subscribe`);
 
     this.ws.addEventListener("open", () => {
       if (!this.reconnect) {
         return;
       }
-      this.ws.send(JSON.stringify({
-        type: "reconnect",
-        conversations: this.storage?.getState().conversations.map(
-          (conversation: Conversation) => {
-            return {
-              id: conversation.id,
-              lastMessageId: this.storage?.getState().messages[conversation.id].at(-1)?.id
-            }
-          }
-        ),
-        userId: user.id,
-      }));
-    })
+      this.ws.send(
+        JSON.stringify({
+          type: "reconnect",
+          conversations: this.storage
+            ?.getState()
+            .conversations.map((conversation: Conversation) => {
+              return {
+                id: conversation.id,
+                lastMessageId: this.storage
+                  ?.getState()
+                  .messages[conversation.id].at(-1)?.id,
+              };
+            }),
+          userId: user.id,
+        }),
+      );
+    });
     this.ws.addEventListener("close", () => {
-      this.reconnect = true
-    })
+      this.reconnect = true;
+    });
     this.ws.addEventListener("message", (event) => {
-      let msg: ServiceMessage
+      let msg: ServiceMessage;
       try {
-        msg = JSON.parse(event.data)
+        msg = JSON.parse(event.data);
       } catch (e) {
         console.error("Invalid message", event.data);
         return;
       }
       if (msg.type === "leave") {
-        this.storage?.removeParticipant(msg.conversationId, msg.userId)
-      }else if (msg.type === "join") {
+        this.storage?.removeParticipant(msg.conversationId, msg.userId);
+      } else if (msg.type === "join") {
         if (msg.userId === user.id) {
           return;
         }
-        this.storage?.addUser(new User({
-          id: msg.userId,
-          presence: new Presence({status: UserStatus.Available, description: ""}),
-          firstName: "",
-          lastName: "",
-          username: msg.username,
-          email: "",
-          avatar: msg.avatar || anonAvatar,
-          bio: msg.content,
-        }));
-        this.storage?.addParticipant(msg.conversationId, new Participant({
-          id: msg.userId,
-        }))
-        this.eventHandlers.onUserConnected(new UserConnectedEvent(msg.userId))
+        this.storage?.addUser(
+          new User({
+            id: msg.userId,
+            presence: new Presence({
+              status: UserStatus.Available,
+              description: "",
+            }),
+            firstName: "",
+            lastName: "",
+            username: msg.username,
+            email: "",
+            avatar: msg.avatar,
+            bio: msg.content,
+          }),
+        );
+        this.storage?.addParticipant(
+          msg.conversationId,
+          new Participant({
+            id: msg.userId,
+          }),
+        );
+        this.eventHandlers.onUserConnected(new UserConnectedEvent(msg.userId));
       } else if (msg.type === "message") {
         let message = new ChatMessage<MessageContentType.TextPlain>({
           id: msg.id,
@@ -147,16 +162,19 @@ export class ExampleChatService implements IChatService {
           content: msg.content,
           contentType: MessageContentType.TextPlain,
           senderId: msg.userId,
-          direction: msg.userId === user.id ? MessageDirection.Outgoing : MessageDirection.Incoming,
-          status: MessageStatus.Pending
+          direction:
+            msg.userId === user.id
+              ? MessageDirection.Outgoing
+              : MessageDirection.Incoming,
+          status: MessageStatus.Pending,
         });
         const conversationId = msg.conversationId;
         if (this.eventHandlers.onMessage) {
           this.eventHandlers.onMessage(
-            new MessageEvent({ message, conversationId })
+            new MessageEvent({ message, conversationId }),
           );
         }
-      } else if ( msg.type === "typing") {
+      } else if (msg.type === "typing") {
         const { userId, conversationId, content } = msg;
 
         if (this.eventHandlers.onUserTyping) {
@@ -170,7 +188,7 @@ export class ExampleChatService implements IChatService {
               conversationId,
               content,
               isTyping: true,
-            })
+            }),
           );
         }
       }
@@ -178,40 +196,45 @@ export class ExampleChatService implements IChatService {
   }
 
   joinChannel(conversationID: ConversationId) {
-    this.ws.send(JSON.stringify({
-      type: "join",
-      conversationId: conversationID,
-      userId: this.user.id,
-    }));
+    this.ws.send(
+      JSON.stringify({
+        type: "join",
+        conversationId: conversationID,
+        userId: this.user.id,
+      }),
+    );
   }
 
   sendMessage({ message, conversationId }: SendMessageServiceParams) {
     if (message.contentType == MessageContentType.TextHtml) {
       const msg = message as ChatMessage<MessageContentType.TextHtml>;
-      this.ws.send(JSON.stringify({
-        id: msg.id,
-        type: "message",
-        content: msg.content?.toString(),
-        userId: msg.senderId,
-        conversationId: conversationId}
-      ));
+      this.ws.send(
+        JSON.stringify({
+          id: msg.id,
+          type: "message",
+          content: msg.content?.toString(),
+          userId: msg.senderId,
+          conversationId: conversationId,
+        }),
+      );
     }
   }
 
   sendTyping({
-               isTyping,
-               content,
-               conversationId,
-               userId,
-             }: SendTypingServiceParams) {
+    isTyping,
+    content,
+    conversationId,
+    userId,
+  }: SendTypingServiceParams) {
     if (isTyping) {
-      this.ws.send(JSON.stringify({
+      this.ws.send(
+        JSON.stringify({
           type: "typing",
           content: content,
           userId: userId,
-          conversationId: conversationId
-        }
-      ));
+          conversationId: conversationId,
+        }),
+      );
     }
   }
 
@@ -223,7 +246,7 @@ export class ExampleChatService implements IChatService {
   // You can do it in any way you like. It's important that you will have access to it elsewhere in the service.
   on<T extends ChatEventType, H extends ChatEvent<T>>(
     evtType: T,
-    evtHandler: ChatEventHandler<T, H>
+    evtHandler: ChatEventHandler<T, H>,
   ) {
     const key = `on${evtType.charAt(0).toUpperCase()}${evtType.substring(1)}`;
 
@@ -236,7 +259,7 @@ export class ExampleChatService implements IChatService {
   // In this case remove it from your service to keep it clean.
   off<T extends ChatEventType, H extends ChatEvent<T>>(
     evtType: T,
-    eventHandler: ChatEventHandler<T, H>
+    _: ChatEventHandler<T, H>,
   ) {
     const key = `on${evtType.charAt(0).toUpperCase()}${evtType.substring(1)}`;
     if (key in this.eventHandlers) {

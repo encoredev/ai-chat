@@ -1,54 +1,54 @@
-import {useMemo, useCallback, useEffect} from "react";
-
-import { MainContainer, Sidebar, ConversationList, Conversation, Avatar, ChatContainer, ConversationHeader, MessageGroup, Message,MessageList, MessageInput, TypingIndicator } from "@chatscope/chat-ui-kit-react";
-
-import anonAvatar from "./assets/anon.png";
-
 import {
-  useChat,
-  ChatMessage,
-  MessageContentType,
-  MessageDirection,
-  Participant,
-  ConversationRole,
-  Presence, UserStatus,
-  MessageStatus, ConversationId, ChatProvider, IStorage, UpdateState, BasicStorage, TypingUsersList
+  BasicStorage,
+  ChatProvider,
+  IStorage,
+  Presence,
+  UpdateState,
+  User,
+  UserStatus,
 } from "@chatscope/use-chat";
-import {MessageContent, TextContent, User, Conversation as Conv} from "@chatscope/use-chat";
-import {Container, Row, Col} from "react-bootstrap";
-import {ExampleChatService} from "./components/ChatService";
-import {Chat} from "./components/Chat";
-import {AutoDraft} from "@chatscope/use-chat/dist/enums/AutoDraft";
-import {nanoid} from "nanoid";
+import { ExampleChatService } from "./components/ChatService";
+import { Chat } from "./components/Chat";
+import { AutoDraft } from "@chatscope/use-chat/dist/enums/AutoDraft";
+import { nanoid } from "nanoid";
+import { humanId } from "human-id";
+import { useSearchParams } from "react-router-dom";
 
-export const EncoreChat = ({userName, channelID}:{userName:string, channelID:string}) => {
-  const messageIdGenerator = (message: ChatMessage<MessageContentType>) => nanoid();
-  const groupIdGenerator = () => nanoid();
+export const EncoreChat = () => {
+  const [searchParams] = useSearchParams();
+  const channelID = searchParams.get("channel") || humanId();
+  const userName = searchParams.get("name") || "Sam";
+
   const user = new User({
     id: userName,
-    presence: new Presence({status: UserStatus.Available, description: ""}),
-    firstName: "",
-    lastName: "",
+    presence: new Presence({ status: UserStatus.Available, description: "" }),
     username: userName,
-    email: "",
-    avatar: anonAvatar,
-    bio: ""
+    avatar: "",
   });
+
   const serviceFactory = (storage: IStorage, updateState: UpdateState) => {
     return new ExampleChatService(storage, updateState, user);
   };
-  const storage = new BasicStorage({groupIdGenerator, messageIdGenerator})
+
+  const storage = new BasicStorage({
+    groupIdGenerator: () => nanoid(),
+    messageIdGenerator: () => nanoid(),
+  });
+
   return (
-    <div className="d-flex flex-column overflow-hidden">
-      <Container fluid className="p-4 flex-grow-1 position-relative overflow-hidden">
-            <ChatProvider serviceFactory={serviceFactory} storage={storage} config={{
-              typingThrottleTime: 250,
-              typingDebounceTime: 5000,
-              debounceTyping: true,
-              autoDraft: AutoDraft.Save | AutoDraft.Restore
-            }}>
-              <Chat channelID={channelID} user={user}/>
-            </ChatProvider>
-      </Container>
-    </div>);
-}
+    <div className="flex w-full h-screen">
+      <ChatProvider
+        serviceFactory={serviceFactory}
+        storage={storage}
+        config={{
+          typingThrottleTime: 250,
+          typingDebounceTime: 5000,
+          debounceTyping: true,
+          autoDraft: AutoDraft.Save | AutoDraft.Restore,
+        }}
+      >
+        <Chat channelID={channelID} user={user} />
+      </ChatProvider>
+    </div>
+  );
+};

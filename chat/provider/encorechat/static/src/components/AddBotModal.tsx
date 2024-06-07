@@ -1,102 +1,120 @@
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
-import {Form} from "react-bootstrap";
-import {useState} from "react";
+import { FC, useState } from "react";
+import { DialogTitle } from "@headlessui/react";
+import Modal, { ModalProps } from "./Modal.tsx";
+import Button from "./Button.tsx";
 
 export interface AddBotStatus {
   botName: string;
   status: "success" | "failure" | "creating";
 }
 
-export function AddBotModal(props:any) {
+const AddBotModal: FC<
+  ModalProps & {
+    channelID: string;
+    statusChange: (s?: AddBotStatus) => void;
+  }
+> = ({ channelID, statusChange, show, onHide }) => {
   const [botName, setBotName] = useState("");
   const [botPrompt, setBotPrompt] = useState("");
-  const channelID = props.channelID;
-  const apiURL = window.location.port === "3000" ? "http://localhost:4000" : window.location.protocol + "//" + window.location.host;
-  const onStatusChange = props.statusChange
+  const apiURL = import.meta.env.DEV
+    ? "http://localhost:4000"
+    : window.location.protocol + "//" + window.location.host;
+  const disableButton = !botName || !botPrompt;
 
   const addToChannel = async (botID: string) => {
-    fetch(`${apiURL}/chat/provider/encorechat/channels/${channelID}/bots/${botID}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }).then((resp) => {
-      if (resp.ok) {
-        if(onStatusChange) {
-          onStatusChange()
-        }
-      } else {
-        if(onStatusChange) {
-          onStatusChange({botName: botName, status: "failure"})
-        }
-      }
-    }).catch((e) => {
-      if(onStatusChange) {
-        onStatusChange({botName: botName, status: "failure"})
-      }
-    })
-  }
-  const createBot = async () => {
-      if(onStatusChange) {
-        onStatusChange({botName: botName, status: "creating"})
-      }
-      fetch(`${apiURL}/bots`, {
+    fetch(
+      `${apiURL}/chat/provider/encorechat/channels/${channelID}/bots/${botID}`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: botName,
-          prompt: botPrompt,
-          llm: "openai",
-        }),
-      }).then((resp) => {
+      },
+    )
+      .then((resp) => {
         if (resp.ok) {
-          resp.json().then((data) => {
-            addToChannel(data.ID)
-          })
+          if (statusChange) statusChange();
         } else {
-          if(onStatusChange) {
-            onStatusChange({botName: botName, status: "failure"})
-          }
-        }
-      }).catch((e) => {
-        if(onStatusChange) {
-          onStatusChange({botName: botName, status: "failure"})
+          if (statusChange)
+            statusChange({ botName: botName, status: "failure" });
         }
       })
-      props.onHide();
-  }
+      .catch(() => {
+        if (statusChange) statusChange({ botName: botName, status: "failure" });
+      });
+  };
+  const createBot = async () => {
+    if (statusChange) statusChange({ botName: botName, status: "creating" });
+    onHide();
+
+    fetch(`${apiURL}/bots`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: botName,
+        prompt: botPrompt,
+        llm: "openai",
+      }),
+    })
+      .then((resp) => {
+        if (resp.ok) {
+          resp.json().then((data) => {
+            addToChannel(data.ID);
+          });
+        } else {
+          if (statusChange)
+            statusChange({ botName: botName, status: "failure" });
+        }
+      })
+      .catch(() => {
+        if (statusChange) statusChange({ botName: botName, status: "failure" });
+      });
+  };
 
   return (
-    <Modal
-      {...props}
-      size="lg"
-      aria-labelledby="contained-modal-title-vcenter"
-      centered
-    >
-      <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
+    <Modal show={show} onHide={onHide}>
+      <div className="text-black">
+        <DialogTitle className="font-bold text-xl mb-4">
           Create a Bot
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form>
-          <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-            <Form.Label>Bot Name</Form.Label>
-            <Form.Control type="name" placeholder="Adam" value={botName} onChange={e => setBotName(e.target.value)} />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-            <Form.Label>Bot Description</Form.Label>
-            <Form.Control as="textarea" rows={3} placeholder="A depressed accountant" value={botPrompt} onChange={e => setBotPrompt(e.target.value)  } />
-          </Form.Group>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={props.onHide}>Cancel</Button>
-        <Button onClick={createBot}>Create</Button>
-      </Modal.Footer>
+        </DialogTitle>
+
+        <label className="flex flex-col">
+          <span className="text-gray-500">Name</span>
+          <input
+            type="text"
+            className="w-full rounded-sm border-gray-500 focus:ring-0 focus:border-gray-500"
+            placeholder="Adam"
+            value={botName}
+            onChange={(e) => setBotName(e.target.value)}
+          />
+        </label>
+
+        <label className="flex flex-col mt-4">
+          <span className="text-gray-500">Bot Description</span>
+          <textarea
+            rows={3}
+            className="w-full rounded-sm border-gray-500 focus:ring-0 focus:border-gray-500"
+            placeholder="A depressed accountant"
+            value={botPrompt}
+            onChange={(e) => setBotPrompt(e.target.value)}
+          />
+        </label>
+
+        <div className="flex space-x-4 justify-end mt-6">
+          <Button
+            size="sm"
+            mode="dark"
+            disabled={disableButton}
+            onClick={createBot}
+          >
+            Create
+          </Button>
+        </div>
+      </div>
     </Modal>
   );
-}
+};
+
+export default AddBotModal;
