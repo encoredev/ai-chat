@@ -107,6 +107,15 @@ type AskResponse struct {
 //
 //encore:api private method=POST path=/openai/ask
 func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error) {
+	modResp, err := p.client.Moderations(ctx, openai.ModerationRequest{
+		Input: req.Message,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "moderations")
+	}
+	if fns.Any(modResp.Results, func(r openai.Result) bool { return r.Flagged }) {
+		return nil, errors.New("message was flagged by OpenAI")
+	}
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: cfg.ChatModel(),
 		Messages: []openai.ChatCompletionMessage{

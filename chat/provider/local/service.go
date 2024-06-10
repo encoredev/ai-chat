@@ -1,4 +1,4 @@
-package encorechat
+package local
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
-	"encore.app/chat/provider/encorechat/chat"
+	"encore.app/chat/provider/local/chat"
 	chatdb "encore.app/chat/service/db"
 	"encore.app/pkg/fns"
 	"encore.dev/config"
@@ -67,7 +67,7 @@ func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 	http.ServeFileFS(w, r, staticFiles, path)
 }
 
-//encore:api public raw path=/encorechat/subscribe
+//encore:api public raw path=/localchat/subscribe
 func (s *Service) Subscribe(w http.ResponseWriter, r *http.Request) {
 	if !cfg.Enabled() {
 		http.Error(w, "not enabled", http.StatusNotFound)
@@ -81,7 +81,7 @@ func (s *Service) Subscribe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//encore:api public method=POST path=/encorechat/channels/:channelID/join
+//encore:api public method=POST path=/localchat/channels/:channelID/join
 func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	s.hub.BroadCast(ctx, &chat.ClientMessage{
 		Type:           "join",
@@ -191,7 +191,7 @@ func (s *Service) handleClientMessage(ctx context.Context, clientMsg *chat.Clien
 	return errors.Wrap(err, "publish message")
 }
 
-//encore:api private method=POST path=/encorechat/channels/:channelID/bots/:botID
+//encore:api private method=POST path=/localchat/channels/:channelID/bots/:botID
 func (s *Service) SendTyping(ctx context.Context, channelID string, botID uuid.UUID) error {
 	s.hub.BroadCast(ctx, &chat.ClientMessage{
 		Type:           "typing",
@@ -201,7 +201,7 @@ func (s *Service) SendTyping(ctx context.Context, channelID string, botID uuid.U
 	return nil
 }
 
-//encore:api private method=POST path=/encorechat/channels/:channelID/messages
+//encore:api private method=POST path=/localchat/channels/:channelID/messages
 func (s *Service) SendMessage(ctx context.Context, channelID string, req *provider.SendMessageRequest) error {
 	if req.Bot == nil {
 		return errors.New("only bots can send messages")

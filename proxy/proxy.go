@@ -29,22 +29,26 @@ var BaseURL = func() url.URL {
 		rlog.Info("Starting ngrok")
 		session, err := ngrok.Connect(ctx, ngrok.WithAuthtoken(secrets.NGrokToken))
 		if err != nil {
-			panic(errors.Wrap(err, "ngrok.Connect"))
+			rlog.Warn("Failed to start ngrok", "error", errors.Wrap(err, "ngrok.Connect"))
+			return baseURL
 		}
 		cfg := config.HTTPEndpoint()
+		rlog.Info("Started ngrok")
 		if secrets.NGrokDomain != "" {
 			cfg = config.HTTPEndpoint(config.WithDomain(secrets.NGrokDomain))
 		}
 		f, err := session.ListenAndForward(ctx, &baseURL, cfg)
 		if err != nil {
-			panic(errors.Wrap(err, "ngrok.ListenAndForward"))
+			rlog.Warn("Failed to start ngrok", "error", errors.Wrap(err, "ngrok.Connect"))
+			return baseURL
 		}
 		proxyURL, err := url.Parse(f.URL())
 		rlog.Info("ngrok is started", "url", proxyURL.String())
 		if err != nil {
-			panic(errors.Wrap(err, "url.Parse"))
+			rlog.Warn("Failed to start ngrok", "error", errors.Wrap(err, "ngrok.Connect"))
+			return baseURL
 		}
-
+		rlog.Info("Started ngrok")
 		return *proxyURL
 	}
 	return baseURL

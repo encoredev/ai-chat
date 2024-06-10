@@ -1,18 +1,18 @@
-package encorechat
+package local
 
 import (
 	"context"
 
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
-	"encore.app/chat/provider/encorechat"
+	"encore.app/chat/provider/local"
 	"encore.app/chat/service/client"
 	chatdb "encore.app/chat/service/db"
 	"encore.dev/types/uuid"
 )
 
 func NewClient(ctx context.Context) (*Client, bool) {
-	if err := encorechat.Ping(ctx); err != nil {
+	if err := local.Ping(ctx); err != nil {
 		return nil, false
 	}
 	return &Client{}, true
@@ -45,11 +45,11 @@ type Channel struct {
 }
 
 func (c *Channel) Typing(ctx context.Context, botID uuid.UUID) error {
-	return encorechat.SendTyping(ctx, c.channelID, botID)
+	return local.SendTyping(ctx, c.channelID, botID)
 }
 
 func (c *Channel) Send(ctx context.Context, req *provider.SendMessageRequest) error {
-	return encorechat.SendMessage(ctx, c.channelID, req)
+	return local.SendMessage(ctx, c.channelID, req)
 }
 
 func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*provider.Message, error) {
@@ -65,7 +65,7 @@ func (c *Channel) Info(ctx context.Context) (provider.ChannelInfo, error) {
 }
 
 func (c *Channel) Join(ctx context.Context, bot *botdb.Bot) error {
-	return encorechat.JoinChannel(ctx, c.channelID, bot)
+	return local.JoinChannel(ctx, c.channelID, bot)
 }
 
 func (c *Channel) Leave(ctx context.Context, bot *botdb.Bot) error {

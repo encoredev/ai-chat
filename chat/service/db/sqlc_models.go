@@ -19,7 +19,7 @@ const (
 	ProviderSlack      Provider = "slack"
 	ProviderDiscord    Provider = "discord"
 	ProviderAdmin      Provider = "admin"
-	ProviderEncorechat Provider = "encorechat"
+	ProviderEncorechat Provider = "localchat"
 )
 
 func (e *Provider) Scan(src interface{}) error {

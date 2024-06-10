@@ -10,7 +10,7 @@ import (
 
 	"encore.app/chat/service/client"
 	"encore.app/chat/service/client/discord"
-	"encore.app/chat/service/client/encorechat"
+	"encore.app/chat/service/client/local"
 	"encore.app/chat/service/client/slack"
 	"encore.app/chat/service/db"
 	"encore.dev/storage/sqldb"
@@ -34,8 +34,8 @@ func initService() (*Service, error) {
 	svc := &Service{
 		providers: map[db.Provider]client.Client{},
 	}
-	if encorechatClient, ok := encorechat.NewClient(ctx); ok {
-		svc.providers[db.ProviderEncorechat] = encorechatClient
+	if localchatClient, ok := local.NewClient(ctx); ok {
+		svc.providers[db.ProviderEncorechat] = localchatClient
 	}
 	if discordClient, ok := discord.NewClient(ctx); ok {
 		svc.providers[db.ProviderDiscord] = discordClient

@@ -93,11 +93,6 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	if err != nil {
 		return errors.Wrap(err, "get bot")
 	}
-	_, err = svc.loadChannelHistory(ctx, c)
-	if err != nil {
-		return errors.Wrap(err, "load channel history")
-	}
-
 	prov, ok := svc.providers[c.Provider]
 	if !ok {
 		return errors.Newf("unknown provider %v", c.Provider)
@@ -105,6 +100,10 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	err = prov.GetChannelClient(ctx, c.ProviderID).Join(ctx, b)
 	if err != nil {
 		return errors.Wrap(err, "join channel")
+	}
+	_, err = svc.loadChannelHistory(ctx, c)
+	if err != nil {
+		return errors.Wrap(err, "load channel history")
 	}
 	err = svc.publishLLMTasks(ctx, provider2.TaskTypeJoin, []*botdb.Bot{b}, c, "")
 	if err != nil {

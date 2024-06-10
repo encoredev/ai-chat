@@ -192,6 +192,8 @@ func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 		rlog.Warn("bot not found", "bot", botName)
 		return nil
 	}
+	// Simulate the bot reading
+	time.Sleep(time.Duration(rand.IntN(2000)))
 	_, err = LLMMessageTopic.Publish(ctx, &BotResponse{
 		TaskType: s.Type,
 		Channel:  s.Channel,
@@ -202,7 +204,8 @@ func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 			Type:    BotMessageTypeTyping,
 		}},
 	})
-	randBackoff := time.Duration(rand.IntN(2000)) * time.Millisecond
+	// Simulate the bot typing
+	randBackoff := time.Duration(rand.IntN(1000)) * time.Millisecond
 	time.Sleep(randBackoff + time.Duration(len(msg)*40)*time.Millisecond)
 	rlog.Info("message", "content", msg)
 	_, err = LLMMessageTopic.Publish(ctx, &BotResponse{

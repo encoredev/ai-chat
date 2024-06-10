@@ -1,4 +1,4 @@
-package encorechat
+package local
 
 import (
 	"context"

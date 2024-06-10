@@ -3,6 +3,7 @@ package fns
 import (
 	"io"
 
+	"github.com/sashabaranov/go-openai"
 	"golang.org/x/exp/rand"
 )
 
@@ -66,4 +67,13 @@ func SelectRandom[T any](slice []T, n int) []T {
 
 func CloseIgnore(stream io.Closer) {
 	_ = stream.Close()
+}
+
+func Any(results []openai.Result, f func(r openai.Result) bool) bool {
+	for _, r := range results {
+		if f(r) {
+			return true
+		}
+	}
+	return false
 }
