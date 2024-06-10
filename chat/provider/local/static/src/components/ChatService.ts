@@ -93,7 +93,7 @@ export class ExampleChatService implements IChatService {
     this.user = user;
     let proto = document.location.protocol === "https:" ? "wss://" : "ws://";
     let host = import.meta.env.DEV ? "localhost:4000" : document.location.host;
-    this.ws = new ReconnectingWebSocket(proto + host + `/encorechat/subscribe`);
+    this.ws = new ReconnectingWebSocket(proto + host + `/localchat/subscribe`);
 
     this.ws.addEventListener("open", () => {
       if (!this.reconnect) {

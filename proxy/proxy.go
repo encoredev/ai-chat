@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"net/url"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"golang.ngrok.com/ngrok"
@@ -27,10 +28,23 @@ var BaseURL = func() url.URL {
 			return baseURL
 		}
 		rlog.Info("Starting ngrok")
-		session, err := ngrok.Connect(ctx, ngrok.WithAuthtoken(secrets.NGrokToken))
-		if err != nil {
-			rlog.Warn("Failed to start ngrok", "error", errors.Wrap(err, "ngrok.Connect"))
+		ngrokCtx, cancel := context.WithCancel(ctx)
+		sessChan := make(chan ngrok.Session)
+		var session ngrok.Session
+		go func() {
+			session, err := ngrok.Connect(ngrokCtx, ngrok.WithAuthtoken(secrets.NGrokToken))
+			if err != nil {
+				rlog.Warn("Failed to start ngrok", "error", errors.Wrap(err, "ngrok.Connect"))
+			}
+			sessChan <- session
+		}()
+		timer := time.NewTimer(3 * time.Second)
+		select {
+		case <-timer.C:
+			rlog.Warn("Failed to start ngrok", "error", errors.New("timeout"))
+			cancel()
 			return baseURL
+		case session = <-sessChan:
 		}
 		cfg := config.HTTPEndpoint()
 		rlog.Info("Started ngrok")

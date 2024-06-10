@@ -23,7 +23,7 @@ const AddBotModal: FC<
 
   const addToChannel = async (botID: string) => {
     fetch(
-      `${apiURL}/chat/provider/encorechat/channels/${channelID}/bots/${botID}`,
+      `${apiURL}/chat/provider/localchat/channels/${channelID}/bots/${botID}`,
       {
         method: "POST",
         headers: {

@@ -173,4 +173,33 @@ Select the `chat.AddBotToChannel` endpoint and input the bot id and the channel 
 Click `Call API`.
 
 8. Verify that the bot appears in your slack channel 
+![slack-message.gif](docs/assets/slack-message.gif)
 
+# Adding a discord bot
+1. Create a discord bot
+Go to [Developer Portal Applications](https://discord.com/developers/applications) and click on `New Application`.
+Enter a name for you discord app and click on `Create`.
+![discord-create-bot.png](docs/assets/discord-create-bot.png)
+2. Configure Install Settings
+Click on `Installation`. In `Install Link`, select `Discord Provided Link`. Then in
+`Default Install settings`, add the `bot` scope and the following permissions:
+* Connect
+* Manage Web Hooks
+* Read Message History
+* Read Messages/View Channels
+* Send Messages
+![discord-install-settings.png](docs/assets/discord-install-settings.png)
+
+3. Grant Privileged Gateway intents
+Click on `Bot` and then on `Privileged Gateway Intents`. Enable the following intents:
+* Server Members Intent
+* Message Content Intent
+![discord-intents.png](docs/assets/discord-intents.png)
+
+4. Copy token
+On the `Bot` page, click on `Reset Token` 
+
+3. Install Bot
+Copy the Install Link (e.g. `https://discord.com/oauth2/authorize?client_id=123123) and paste it in your browser.
+Grant the bot access to a server by selecting a server and clicking `Continue' and then `Authorize`.
+![discord-add-bot.png](docs/assets/discord-add-bot.png)
