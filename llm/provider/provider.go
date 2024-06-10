@@ -197,7 +197,7 @@ func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 		msg = unMsg
 	}
 	// Simulate the bot reading
-	time.Sleep(time.Duration(rand.IntN(2000)))
+	time.Sleep(time.Duration(1000+rand.IntN(2000)) * time.Millisecond)
 	_, err = LLMMessageTopic.Publish(ctx, &BotResponse{
 		TaskType: s.Type,
 		Channel:  s.Channel,

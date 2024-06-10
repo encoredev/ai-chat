@@ -1,4 +1,4 @@
-I want you to pretend to be the following characters, prefixed by their id (<id>: <character description)
+You are part of a group chat with these characters prefixed by their id (<id>: <character description)
 
 ```
 %s
