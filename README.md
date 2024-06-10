@@ -108,13 +108,17 @@ The AI Chat application is designed as a modular system:
 1. Create a Ngrok account (only required for local development)
 Navigate to [https://ngrok.com/](https://ngrok.com/) and create an account.
 Login to your account and add a tunnel auth token by clicking on `Authtokens` and then on `Add Tunnel Authtoken`.
+
 ![Create a auth token](docs/assets/ngrok-token.png)
+
 Copy the token and add it as an encore secret
 ```bash
 > encore secret set NGrokToken --type local
 ```
 Then, create a ngrok domain by clicking Domains -> New Domain.
+
 ![Create a new ngrok domain](docs/assets/ngrok-domain.png)
+
 Copy the domain name and add it as an encore secret
 ```bash
 > encore secret set NGrokDomain --type local
@@ -122,7 +126,9 @@ Copy the domain name and add it as an encore secret
 
 2. Create a slack app
 Navigate to [https://api.slack.com/apps](https://api.slack.com/apps) and click on "Create New App".
+
 ![Create a new slack app](docs/assets/slack-app.png)
+
 Select `From an app manifest` and click on `Next`.
 Next, pick the workspace where you want to develop your app in and click `Next`
 Copy the [bot manifest](chat/provider/slack/bot-manifest.json) and paste it in the text box.
@@ -136,12 +142,14 @@ Start the encore app (this is necessary to activate event subscriptions):
 > encore run
 ```
 If the `Request URL` is yellow, click on `Retry`
+
 ![Enable event subscriptions](docs/assets/slack-events.png)
 
 3. Install the app to your workspace
 On the settings page, click `OAuth & Permissions` and then on `Install to Workspace`
 [Authorize the app](docs/assets/slack-oauth.png)
 On the OAuth permission page, select a channel where you want to add the bot and click `Allow`.
+
 ![Authorize the app](docs/assets/slack-channel.png)
 
 4. Add the slack bot token
@@ -160,6 +168,7 @@ Start the encore app
 6. Create a bot
 In the [Encore Local dev dash](http://localhost:9400/), click on `API Explorer` 
 and select the `bot.Create` endpoint. Add a name, prompt and enter `openai` as the llm:
+
 ![Create a bot](docs/assets/bot-create.gif)
 
 Copy the bot id and save it for later
@@ -173,13 +182,16 @@ Select the `chat.AddBotToChannel` endpoint and input the bot id and the channel 
 Click `Call API`.
 
 8. Verify that the bot appears in your slack channel 
+
 ![slack-message.gif](docs/assets/slack-message.gif)
 
 # Adding a discord bot
 1. Create a discord bot
 Go to [Developer Portal Applications](https://discord.com/developers/applications) and click on `New Application`.
 Enter a name for you discord app and click on `Create`.
+
 ![discord-create-bot.png](docs/assets/discord-create-bot.png)
+
 2. Configure Install Settings
 Click on `Installation`. In `Install Link`, select `Discord Provided Link`. Then in
 `Default Install settings`, add the `bot` scope and the following permissions:
@@ -188,18 +200,60 @@ Click on `Installation`. In `Install Link`, select `Discord Provided Link`. Then
 * Read Message History
 * Read Messages/View Channels
 * Send Messages
+
 ![discord-install-settings.png](docs/assets/discord-install-settings.png)
 
 3. Grant Privileged Gateway intents
 Click on `Bot` and then on `Privileged Gateway Intents`. Enable the following intents:
 * Server Members Intent
 * Message Content Intent
+
 ![discord-intents.png](docs/assets/discord-intents.png)
 
 4. Copy token
 On the `Bot` page, click on `Reset Token` 
 
-3. Install Bot
+![discord-reset-token.png](docs/assets/discord-reset-token.png)
+
+Copy the token and add it as an encore secret
+```bash
+> encore secret set DiscordToken --type local
+```
+
+5. Install Bot
 Copy the Install Link (e.g. `https://discord.com/oauth2/authorize?client_id=123123) and paste it in your browser.
 Grant the bot access to a server by selecting a server and clicking `Continue' and then `Authorize`.
+
 ![discord-add-bot.png](docs/assets/discord-add-bot.png)
+
+6. Invite the bot to a channel (optional)
+If you want to use the bot in a private channel, you must invite the bot to the channel.
+In your cahnnel, click `Add members or roles` and select the bot name.
+
+![discord-add-member.png](docs/assets/discord-add-member.png)
+
+6. Start the Encore App
+Start the encore app
+```bash
+> encore run
+```
+
+7. Create a bot
+In the [Encore Local dev dash](http://localhost:9400/), click on `API Explorer`
+and select the `bot.Create` endpoint. Add a name, prompt and enter `openai` as the llm:
+
+![Create a bot](docs/assets/bot-create.gif)
+
+Copy the bot id and save it for later
+
+8. Find a discord channel id
+In the [dev dash](http://localhost:9400/), click on `API Explorer` and select the `chat.ListChannels` endpoint.
+and click `Call API`. In the returned list,  find the channel you want to add the bot to and copy the `id` field.
+
+9. Add the bot to the slack channel
+Select the `chat.AddBotToChannel` endpoint and input the bot id and the channel id you copied in the previous steps.
+Click `Call API`.
+
+8. Verify that the bot appears in your discord channel
+
+![discord-message.gif](docs/assets/discord-message.gif)

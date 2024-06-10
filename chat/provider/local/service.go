@@ -10,6 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 	_ "github.com/gorilla/websocket"
 
+	"encore.app/bot"
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
 	"encore.app/chat/provider/local/chat"
@@ -65,6 +66,32 @@ func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 	}
 	path = "/static/build" + path
 	http.ServeFileFS(w, r, staticFiles, path)
+}
+
+type BotInfo struct {
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
+}
+
+type ListBotResponse struct {
+	Bots []BotInfo `json:"bots"`
+}
+
+//encore:api public method=GET path=/localchat/bots
+func (s *Service) ListBots(ctx context.Context) (*ListBotResponse, error) {
+	bots, err := bot.List(ctx, &bot.ListBotRequest{})
+	if err != nil {
+		return nil, errors.Wrap(err, "list bots")
+	}
+	return &ListBotResponse{
+		Bots: fns.Map(bots.Bots, func(bot *botdb.Bot) BotInfo {
+			return BotInfo{
+				Name:   bot.Name,
+				Avatar: bot.GetAvatarURL(),
+			}
+		}),
+	}, nil
+
 }
 
 //encore:api public raw path=/localchat/subscribe
