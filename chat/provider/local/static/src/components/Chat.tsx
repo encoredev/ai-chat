@@ -241,7 +241,7 @@ export const Chat = ({
                   {activeConversation?.participants.map((p) => {
                     const isBot = !!getUser(p.id)?.avatar;
                     return (
-                      <Avatar status="available" src={getUser(p.id)?.avatar}>
+                      <Avatar src={getUser(p.id)?.avatar}>
                         {!isBot && <ProfileCircle user={user} size="sm" />}
                       </Avatar>
                     );
