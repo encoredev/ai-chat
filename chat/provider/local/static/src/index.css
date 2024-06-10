@@ -27,6 +27,10 @@ body {
   @apply !bg-transparent !rounded-none;
 }
 
+.cs-message-group {
+  @apply !max-w-full;
+}
+
 .cs-message-group__content, .cs-message-group__messages, .cs-message {
   @apply !w-full;
 }

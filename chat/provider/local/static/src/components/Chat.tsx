@@ -29,6 +29,7 @@ import { ExampleChatService } from "./ChatService";
 import ProfileModal from "./ProfileModal";
 import AddBotModal, { AddBotStatus } from "./AddBotModal";
 import {
+  List,
   Robot,
   Spinner,
   User as UserIcon,
@@ -36,6 +37,7 @@ import {
 } from "@phosphor-icons/react";
 import poweredBy from "../assets/powered-by-encore.png";
 import InviteFriendModal from "./InviteFriendModal.tsx";
+import SlideOver from "./SlideOver.tsx";
 
 const WHITE = "#dcdee1";
 
@@ -87,6 +89,7 @@ export const Chat = ({
   const [userProfile, setUserProfile] = useState<User>();
   const [addUserShow, setAddUserShow] = useState(false);
   const [inviteFriendShow, setInviteFriend] = useState(false);
+  const [mobileSidebarShow, setMobileSidebarShow] = useState(false);
 
   const handleChange = (value: string) => {
     // Send typing indicator to the active conversation
@@ -150,6 +153,29 @@ export const Chat = ({
     return null;
   }, [activeConversation, getUser]);
 
+  const getSidebar = () => {
+    return (
+      <ChatSidebar
+        user={user}
+        getUser={getUser}
+        setUserProfile={(user) => {
+          setUserProfile(user);
+          setMobileSidebarShow(false);
+        }}
+        botStatus={botStatus}
+        activeConversation={activeConversation}
+        showAddBotModal={() => {
+          setAddUserShow(true);
+          setMobileSidebarShow(false);
+        }}
+        showInviteFriendModal={() => {
+          setInviteFriend(true);
+          setMobileSidebarShow(false);
+        }}
+      />
+    );
+  };
+
   return (
     <MainContainer responsive className="w-full h-screen !border-none">
       <ProfileModal
@@ -171,96 +197,35 @@ export const Chat = ({
         onHide={() => setInviteFriend(false)}
       />
 
-      <Sidebar
-        position="left"
-        scrollable
-        className="flex justify-between !bg-gray-900 !border-none !max-w-[220px] !shadow-xl py-2"
+      {/* Desktop sidebar */}
+      {getSidebar()}
+
+      {/* Mobile sidebar */}
+      <SlideOver
+        show={mobileSidebarShow}
+        onHide={() => setMobileSidebarShow(false)}
       >
-        <div>
-          {activeConversation?.participants.map((p) => {
-            const isUser = p.id === user.id;
-            return (
-              <div
-                id={p.id}
-                className={`
-                  flex space-x-2 items-center px-4 py-3 hover:!bg-gray-800
-                  ${isUser ? "cursor-default" : "cursor-pointer"}
-                `}
-                onClick={() => {
-                  if (!isUser) setUserProfile(getUser(p.id));
-                }}
-              >
-                <Avatar status="available" src={getUser(p.id)?.avatar}>
-                  {isUser && <ProfileCircle user={user} />}
-                </Avatar>
-                <div>
-                  <span className="text-white font-semibold">
-                    {getUser(p.id)?.username}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {botStatus?.status === "creating" && (
-            <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
-              <Avatar status="eager" size="sm">
-                <Spinner size={40} color={WHITE} className="animate-spin" />
-              </Avatar>
-              <div className="text-white">Creating {botStatus?.botName}</div>
-            </div>
-          )}
-
-          {botStatus?.status === "failure" && (
-            <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
-              <Avatar status="dnd">
-                <WarningCircle size={40} color={WHITE} />
-              </Avatar>
-              <div className="text-white">
-                Failed to create {botStatus?.botName}
-              </div>
-            </div>
-          )}
-
-          <div className="h-[2px] w-5/6 bg-gray-700 mx-auto my-4" />
-
-          <div
-            onClick={() => setAddUserShow(true)}
-            className="flex items-center space-x-2 text-white px-4 py-2 cursor-pointer hover:!bg-gray-800"
-          >
-            <div>
-              <Robot size={25} color={WHITE} />
-            </div>
-            <span className="uppercase text-xs hidden md:block">Add Bot</span>
-          </div>
-
-          <div
-            onClick={() => setInviteFriend(true)}
-            className="flex items-center space-x-2 text-white px-4 py-2 cursor-pointer hover:!bg-gray-800"
-          >
-            <div>
-              <UserIcon size={25} color={WHITE} />
-            </div>
-            <span className="uppercase text-xs hidden md:block">
-              Invite Friend
-            </span>
-          </div>
-        </div>
-
-        <div className="px-2">
-          <a href="https://github.com/encoredev/ai-chat/tree/main">
-            <img
-              src={poweredBy}
-              alt="Powered by Encore"
-              className="block mx-auto"
-            />
-          </a>
-        </div>
-      </Sidebar>
+        {getSidebar()}
+      </SlideOver>
 
       <ChatContainer>
         <ConversationHeader className="!bg-gray-900 !p-0 !border-gray-500 shadow-lg">
-          <ConversationHeader.Back />
+          <ConversationHeader.Back className="ml-4">
+            {botStatus?.status === "creating" ? (
+              <Spinner
+                size={30}
+                color={WHITE}
+                className="animate-spin"
+                onClick={() => setMobileSidebarShow(true)}
+              />
+            ) : (
+              <List
+                size={30}
+                color={WHITE}
+                onClick={() => setMobileSidebarShow(true)}
+              />
+            )}
+          </ConversationHeader.Back>
           <ConversationHeader.Content>
             <p className="flex font-mono items-center space-x-2 text-white font-semibold px-4 py-2">
               <span className="opacity-50 text-xl">#</span>{" "}
@@ -321,6 +286,114 @@ export const Chat = ({
         />
       </ChatContainer>
     </MainContainer>
+  );
+};
+
+const ChatSidebar: FC<{
+  activeConversation?: Conv<any> | undefined;
+  user: User;
+  setUserProfile: (user?: User) => void;
+  getUser: (userId: string) => User | undefined;
+  botStatus: AddBotStatus | undefined;
+  showAddBotModal: () => void;
+  showInviteFriendModal: () => void;
+}> = ({
+  activeConversation,
+  user,
+  setUserProfile,
+  getUser,
+  botStatus,
+  showAddBotModal,
+  showInviteFriendModal,
+}) => {
+  return (
+    <Sidebar
+      position="left"
+      scrollable
+      className="flex justify-between !bg-gray-900 !border-none !max-w-[220px] !shadow-xl py-2"
+      style={{
+        flex: "35%",
+      }}
+    >
+      <div>
+        {activeConversation?.participants.map((p) => {
+          const isUser = p.id === user.id;
+          return (
+            <div
+              id={p.id}
+              className={`
+                  flex space-x-2 items-center px-4 py-3 hover:!bg-gray-800
+                  ${isUser ? "cursor-default" : "cursor-pointer"}
+                `}
+              onClick={() => {
+                if (!isUser) setUserProfile(getUser(p.id));
+              }}
+            >
+              <Avatar status="available" src={getUser(p.id)?.avatar}>
+                {isUser && <ProfileCircle user={user} />}
+              </Avatar>
+              <div>
+                <span className="text-white font-semibold">
+                  {getUser(p.id)?.username}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {botStatus?.status === "creating" && (
+          <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
+            <Avatar status="eager" size="md">
+              <Spinner size={40} color={WHITE} className="animate-spin" />
+            </Avatar>
+            <div className="text-white">Creating {botStatus?.botName}</div>
+          </div>
+        )}
+
+        {botStatus?.status === "failure" && (
+          <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
+            <Avatar status="dnd" size="md">
+              <WarningCircle size={40} color={WHITE} />
+            </Avatar>
+            <div className="text-white">
+              Failed to create {botStatus?.botName}
+            </div>
+          </div>
+        )}
+
+        <div className="h-[2px] w-5/6 bg-gray-700 mx-auto my-4" />
+
+        <div
+          onClick={showAddBotModal}
+          className="flex items-center space-x-2 text-white px-4 py-2 cursor-pointer hover:!bg-gray-800"
+        >
+          <div>
+            <Robot size={25} color={WHITE} />
+          </div>
+          <span className="uppercase text-xs">Add Bot</span>
+        </div>
+
+        <div
+          onClick={showInviteFriendModal}
+          className="flex items-center space-x-2 text-white px-4 py-2 cursor-pointer hover:!bg-gray-800"
+        >
+          <div>
+            <UserIcon size={25} color={WHITE} />
+          </div>
+          <span className="uppercase text-xs">Invite Friend</span>
+        </div>
+      </div>
+
+      <div className="px-2">
+        <a href="https://github.com/encoredev/ai-chat/tree/main">
+          <img
+            src={poweredBy}
+            alt="Powered by Encore"
+            className="block mx-auto"
+          />
+        </a>
+      </div>
+    </Sidebar>
   );
 };
 
