@@ -362,17 +362,41 @@ const ChatSidebar: FC<{
           );
         })}
 
+        {activeConversation?.participants &&
+          activeConversation.participants.length <= 1 && (
+            <div className="flex space-x-2 items-center p-4 py-3">
+              <Avatar status="eager" size="md">
+                <div
+                  className={`
+                  flex items-center justify-center rounded-full bg-gray-500 relative font-semibold
+                  h-[40px] w-[40px] animate-pulse
+                `}
+                >
+                  <Robot size={30} color={WHITE} />
+                </div>
+              </Avatar>
+              <div className="text-white">Bots joining...</div>
+            </div>
+          )}
+
         {botStatus?.status === "creating" && (
-          <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
+          <div className="flex space-x-2 items-center p-4 py-3">
             <Avatar status="eager" size="md">
-              <Spinner size={40} color={WHITE} className="animate-spin" />
+              <div
+                className={`
+                  flex items-center justify-center rounded-full bg-gray-500 relative font-semibold
+                  h-[40px] w-[40px] animate-pulse
+                `}
+              >
+                <Robot size={30} color={WHITE} />
+              </div>
             </Avatar>
             <div className="text-white">Creating {botStatus?.botName}</div>
           </div>
         )}
 
         {botStatus?.status === "failure" && (
-          <div className="flex space-x-2 items-center p-4 py-3 cursor-pointer">
+          <div className="flex space-x-2 items-center p-4 py-3">
             <Avatar status="dnd" size="md">
               <WarningCircle size={40} color={WHITE} />
             </Avatar>

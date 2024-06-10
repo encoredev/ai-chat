@@ -138,7 +138,7 @@ export const Home: FC<{}> = () => {
           <div className="flex flex-col h-fit rounded-xl bg-white/5 p-6 ring-1 ring-inset ring-white/10 mt-10 min-w-fit w-fit md:mt-0">
             <div>
               <dt className="truncate text-sm font-medium text-white opacity-50">
-                Boots live right now
+                Bots live right now
               </dt>
               <dd className="mt-1 flex items-center space-x-2 text-3xl font-semibold tracking-tight">
                 <span className="text-white">{botsLive.length || "??"}</span>
