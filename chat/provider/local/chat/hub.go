@@ -58,6 +58,12 @@ type Hub struct {
 	ctx context.Context
 }
 
+func (h *Hub) CloseAllClients() {
+	for client := range h.clients {
+		h.unregister <- client
+	}
+}
+
 func (h *Hub) BroadCast(ctx context.Context, msg *ClientMessage) {
 	h.broadcast <- msg
 }

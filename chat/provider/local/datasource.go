@@ -36,6 +36,9 @@ func (d *DataSource) GetChannelUsers(ctx context.Context, c *db.Channel) ([]*db.
 	members, err := q.ListUsersInChannel(ctx, chatDb.Stdlib(), c.ID)
 	botUsers := fns.Filter(members, func(m *db.User) bool { return m.BotID != nil })
 	botsIds := fns.Map(botUsers, func(m *db.User) uuid.UUID { return *m.BotID })
+	if len(botsIds) == 0 {
+		return members, nil, nil
+	}
 	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: botsIds})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "list bots")

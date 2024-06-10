@@ -42,6 +42,15 @@ func initService() (*Service, error) {
 	return svc, nil
 }
 
+//encore:api private
+func (p *Service) CloseAllClients(ctx context.Context) error {
+	if p == nil {
+		return nil
+	}
+	p.hub.CloseAllClients()
+	return nil
+}
+
 // Ping returns an error if the Discord service is not available.
 // encore:api private
 func (p *Service) Ping(ctx context.Context) error {
