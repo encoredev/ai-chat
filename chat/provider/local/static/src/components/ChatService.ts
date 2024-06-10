@@ -198,9 +198,10 @@ export class ExampleChatService implements IChatService {
   joinChannel(conversationID: ConversationId) {
     this.ws.send(
       JSON.stringify({
-        type: "join",
-        conversationId: conversationID,
         userId: this.user.id,
+        type: "join",
+        username: this.user.id,
+        conversationId: conversationID,
       }),
     );
   }
