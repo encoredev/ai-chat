@@ -131,8 +131,11 @@ func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.
 }
 
 func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afterID string, client *chat.Client) error {
-	channel, ok := s.data.GetChannel(ctx, channelID)
-	if !ok {
+	channel, err := s.data.GetChannel(ctx, channelID)
+	if err != nil {
+		return errors.Wrap(err, "get channel")
+	}
+	if channel != nil {
 		_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
 			Provider:   chatdb.ProviderLocalchat,
 			ProviderID: uuid.Must(uuid.NewV4()).String(),

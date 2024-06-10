@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"database/sql"
 	"slices"
 
 	"github.com/cockroachdb/errors"
@@ -19,16 +20,18 @@ var chatDb = sqldb.Named("chat")
 
 type DataSource struct{}
 
-func (d *DataSource) GetChannel(ctx context.Context, id string) (*db.Channel, bool) {
+func (d *DataSource) GetChannel(ctx context.Context, id string) (*db.Channel, error) {
 	q := db.New()
 	channel, err := q.GetChannelByProviderID(ctx, chatDb.Stdlib(), db.GetChannelByProviderIDParams{
 		ProviderID: id,
 		Provider:   db.ProviderLocalchat,
 	})
-	if err != nil {
-		return nil, false
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "get channel")
 	}
-	return channel, true
+	return channel, nil
 }
 
 func (d *DataSource) GetChannelUsers(ctx context.Context, c *db.Channel) ([]*db.User, []*botdb.Bot, error) {
