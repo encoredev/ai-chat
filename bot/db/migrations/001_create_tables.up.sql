@@ -3,8 +3,11 @@ CREATE TABLE IF NOT EXISTS bot(
     name TEXT NOT NULL,
     prompt TEXT NOT NULL,
     profile TEXT NOT NULL,
-    avatar bytea,
     provider TEXT NOT NULL,
     deleted TIMESTAMP DEFAULT NULL
-
 );
+
+CREATE TABLE IF NOT EXISTS avatar(
+    bot_id uuid PRIMARY KEY,
+    avatar bytea NOT NULL
+)

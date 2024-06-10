@@ -173,6 +173,6 @@ func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (
 	if err != nil {
 		return nil, errors.Wrap(err, "send message")
 	}
-	err = req.Write(ctx, flattenResponse(resp))
+	err = req.Write(ctx, flattenResponse(resp)+"\n")
 	return &provider.ContinueChatResponse{}, errors.Wrap(err, "write response")
 }

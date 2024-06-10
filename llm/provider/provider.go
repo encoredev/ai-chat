@@ -170,27 +170,31 @@ func (s *ChatRequest) Write(ctx context.Context, p string) (err error) {
 
 func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 	line = strings.TrimSpace(line)
+	// skip start of code block
+	if line == "```" {
+		return nil
+	}
 	author, msg, ok := strings.Cut(line, ":")
 	if !ok {
 		rlog.Warn("invalid line", "line", line)
 		return nil
 	}
-	author = strings.TrimSpace(author)
+	botParts := strings.Split(author, "/")
+	botID := strings.ToLower(botParts[len(botParts)-1])
+	if botID == "none" {
+		return nil
+	}
+	botIx, err := strconv.ParseInt(strings.TrimSpace(botID), 10, 64)
+	if err != nil || botIx < 0 || int(botIx) >= len(s.Bots) {
+		rlog.Warn("parse bot ID", "error", err, "botID", botID)
+		return nil
+	}
+
 	unMsg, err := strconv.Unquote(strings.TrimSpace(msg))
 	if err != nil {
 		rlog.Warn("unquote message", "error", err, "msg", msg)
 	} else {
 		msg = unMsg
-	}
-	botParts := strings.Split(author, "/")
-	botName := strings.ToLower(botParts[len(botParts)-1])
-	if botName == "none" {
-		return nil
-	}
-	bot, ok := s.BotsByName()[botName]
-	if !ok {
-		rlog.Warn("bot not found", "bot", botName)
-		return nil
 	}
 	// Simulate the bot reading
 	time.Sleep(time.Duration(rand.IntN(2000)))
@@ -198,7 +202,7 @@ func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 		TaskType: s.Type,
 		Channel:  s.Channel,
 		Messages: []*BotMessage{{
-			Bot:     bot.ID,
+			Bot:     s.Bots[botIx].ID,
 			Content: msg,
 			Time:    time.Now(),
 			Type:    BotMessageTypeTyping,
@@ -212,7 +216,7 @@ func (s *ChatRequest) processLine(ctx context.Context, line string) error {
 		TaskType: s.Type,
 		Channel:  s.Channel,
 		Messages: []*BotMessage{{
-			Bot:     bot.ID,
+			Bot:     s.Bots[botIx].ID,
 			Content: msg,
 			Time:    time.Now(),
 			Type:    BotMessageTypeText,

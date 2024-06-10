@@ -13,7 +13,7 @@ import (
 )
 
 const deleteBot = `-- name: DeleteBot :one
-UPDATE bot SET deleted = NOW() WHERE id = $1 RETURNING id, name, prompt, profile, avatar, provider, deleted
+UPDATE bot SET deleted = NOW() WHERE id = $1 RETURNING id, name, prompt, profile, provider, deleted
 `
 
 func (q *Queries) DeleteBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, error) {
@@ -24,7 +24,6 @@ func (q *Queries) DeleteBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, e
 		&i.Name,
 		&i.Prompt,
 		&i.Profile,
-		&i.Avatar,
 		&i.Provider,
 		&i.Deleted,
 	)
@@ -32,7 +31,7 @@ func (q *Queries) DeleteBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, e
 }
 
 const getBot = `-- name: GetBot :one
-SELECT id, name, prompt, profile, avatar, provider, deleted FROM bot WHERE id = $1 AND deleted IS NULL
+SELECT id, name, prompt, profile, provider, deleted FROM bot WHERE id = $1 AND deleted IS NULL
 `
 
 func (q *Queries) GetBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, error) {
@@ -43,7 +42,6 @@ func (q *Queries) GetBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, erro
 		&i.Name,
 		&i.Prompt,
 		&i.Profile,
-		&i.Avatar,
 		&i.Provider,
 		&i.Deleted,
 	)
@@ -51,7 +49,7 @@ func (q *Queries) GetBot(ctx context.Context, db DBTX, id uuid.UUID) (*Bot, erro
 }
 
 const getBotByName = `-- name: GetBotByName :one
-SELECT id, name, prompt, profile, avatar, provider, deleted FROM bot WHERE name = $1 AND deleted IS NULL
+SELECT id, name, prompt, profile, provider, deleted FROM bot WHERE name = $1 AND deleted IS NULL
 `
 
 func (q *Queries) GetBotByName(ctx context.Context, db DBTX, name string) (*Bot, error) {
@@ -62,7 +60,6 @@ func (q *Queries) GetBotByName(ctx context.Context, db DBTX, name string) (*Bot,
 		&i.Name,
 		&i.Prompt,
 		&i.Profile,
-		&i.Avatar,
 		&i.Provider,
 		&i.Deleted,
 	)
@@ -70,7 +67,7 @@ func (q *Queries) GetBotByName(ctx context.Context, db DBTX, name string) (*Bot,
 }
 
 const getBots = `-- name: GetBots :many
-SELECT id, name, prompt, profile, avatar, provider, deleted FROM bot WHERE id = ANY($1::uuid[]) AND deleted IS NULL
+SELECT id, name, prompt, profile, provider, deleted FROM bot WHERE id = ANY($1::uuid[]) AND deleted IS NULL
 `
 
 func (q *Queries) GetBots(ctx context.Context, db DBTX, ids []uuid.UUID) ([]*Bot, error) {
@@ -87,7 +84,6 @@ func (q *Queries) GetBots(ctx context.Context, db DBTX, ids []uuid.UUID) ([]*Bot
 			&i.Name,
 			&i.Prompt,
 			&i.Profile,
-			&i.Avatar,
 			&i.Provider,
 			&i.Deleted,
 		); err != nil {
@@ -105,14 +101,13 @@ func (q *Queries) GetBots(ctx context.Context, db DBTX, ids []uuid.UUID) ([]*Bot
 }
 
 const insertBot = `-- name: InsertBot :one
-INSERT INTO bot (id, name, prompt, profile, avatar, provider) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING id, name, prompt, profile, avatar, provider, deleted
+INSERT INTO bot (id, name, prompt, profile, provider) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING id, name, prompt, profile, provider, deleted
 `
 
 type InsertBotParams struct {
 	Name     string
 	Prompt   string
 	Profile  string
-	Avatar   []byte
 	Provider string
 }
 
@@ -121,7 +116,6 @@ func (q *Queries) InsertBot(ctx context.Context, db DBTX, arg InsertBotParams) (
 		arg.Name,
 		arg.Prompt,
 		arg.Profile,
-		arg.Avatar,
 		arg.Provider,
 	)
 	var i Bot
@@ -130,7 +124,6 @@ func (q *Queries) InsertBot(ctx context.Context, db DBTX, arg InsertBotParams) (
 		&i.Name,
 		&i.Prompt,
 		&i.Profile,
-		&i.Avatar,
 		&i.Provider,
 		&i.Deleted,
 	)
@@ -138,7 +131,7 @@ func (q *Queries) InsertBot(ctx context.Context, db DBTX, arg InsertBotParams) (
 }
 
 const listBot = `-- name: ListBot :many
-SELECT id, name, prompt, profile, avatar, provider, deleted FROM bot WHERE deleted IS NULL
+SELECT id, name, prompt, profile, provider, deleted FROM bot WHERE deleted IS NULL
 `
 
 func (q *Queries) ListBot(ctx context.Context, db DBTX) ([]*Bot, error) {
@@ -155,7 +148,6 @@ func (q *Queries) ListBot(ctx context.Context, db DBTX) ([]*Bot, error) {
 			&i.Name,
 			&i.Prompt,
 			&i.Profile,
-			&i.Avatar,
 			&i.Provider,
 			&i.Deleted,
 		); err != nil {

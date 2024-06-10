@@ -148,9 +148,8 @@ func (svc *Service) GenerateBotProfile(ctx context.Context, req *GenerateBotProf
 // and profile of each bot.
 func formatBotProfiles(bots []*botdb.Bot) string {
 	res := strings.Builder{}
-	for _, b := range bots {
-		res.WriteString(b.Name)
-		res.WriteString(": ")
+	for i, b := range bots {
+		res.WriteString(fmt.Sprintf("%d: ", i))
 		res.WriteString(b.Profile)
 		res.WriteString("\n")
 	}

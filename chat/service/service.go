@@ -35,7 +35,7 @@ func initService() (*Service, error) {
 		providers: map[db.Provider]client.Client{},
 	}
 	if localchatClient, ok := local.NewClient(ctx); ok {
-		svc.providers[db.ProviderEncorechat] = localchatClient
+		svc.providers[db.ProviderLocalchat] = localchatClient
 	}
 	if discordClient, ok := discord.NewClient(ctx); ok {
 		svc.providers[db.ProviderDiscord] = discordClient

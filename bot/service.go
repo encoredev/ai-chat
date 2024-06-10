@@ -49,15 +49,28 @@ func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*db.Bot,
 		Provider: req.LLM,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "generate bot profile")
 	}
-	return db.New().InsertBot(ctx, botdb.Stdlib(), db.InsertBotParams{
+	q := db.New()
+	bot, err := q.InsertBot(ctx, botdb.Stdlib(), db.InsertBotParams{
 		Name:     req.Name,
 		Profile:  resp.Profile,
 		Prompt:   req.Prompt,
-		Avatar:   resp.Avatar,
 		Provider: req.LLM,
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "insert bot")
+	}
+	if resp.Avatar != nil {
+		err := q.InsertAvatar(ctx, botdb.Stdlib(), db.InsertAvatarParams{
+			BotID:  bot.ID,
+			Avatar: resp.Avatar,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "insert avatar")
+		}
+	}
+	return bot, nil
 }
 
 type Bots struct {
@@ -91,6 +104,17 @@ func (svc *Service) Get(ctx context.Context, id uuid.UUID) (*db.Bot, error) {
 	return db.New().GetBot(ctx, botdb.Stdlib(), id)
 }
 
+// GetAvatar returns the avatar byte blob
+//
+//encore:api public method=GET path=/bots/:id/avatar/blob
+func (svc *Service) AvatarBlob(ctx context.Context, id uuid.UUID) (*db.Avatar, error) {
+	res, err := db.New().GetAvatar(ctx, botdb.Stdlib(), id)
+	if err != nil {
+		return nil, errors.Wrap(err, "get avatar")
+	}
+	return res, nil
+}
+
 // Delete deletes a bot by ID.
 //
 //encore:api public method=DELETE path=/bots/:id
@@ -110,7 +134,7 @@ func (*Service) Avatar(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid bot uuid", http.StatusBadRequest)
 		return
 	}
-	bot, err := q.GetBot(req.Context(), botdb.Stdlib(), uid)
+	bot, err := q.GetAvatar(req.Context(), botdb.Stdlib(), uid)
 	if err != nil {
 		http.Error(w, "Bot not found", http.StatusNotFound)
 		return

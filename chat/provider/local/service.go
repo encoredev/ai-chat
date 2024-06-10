@@ -125,7 +125,7 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afte
 	channel, ok := s.data.GetChannel(ctx, channelID)
 	if !ok {
 		_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
-			Provider:   chatdb.ProviderEncorechat,
+			Provider:   chatdb.ProviderLocalchat,
 			ProviderID: uuid.Must(uuid.NewV4()).String(),
 			ChannelID:  channelID,
 			Time:       time.Now(),
@@ -203,7 +203,7 @@ func (s *Service) handleClientMessage(ctx context.Context, clientMsg *chat.Clien
 		botID, _ = uuid.FromString(id)
 	}
 	_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
-		Provider:   chatdb.ProviderEncorechat,
+		Provider:   chatdb.ProviderLocalchat,
 		ProviderID: clientMsg.ID,
 		ChannelID:  clientMsg.ConversationId,
 		Author: provider.User{

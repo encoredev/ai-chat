@@ -1,5 +1,5 @@
 -- name: InsertBot :one
-INSERT INTO bot (id, name, prompt, profile, avatar, provider) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO bot (id, name, prompt, profile, provider) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING *;
 
 -- name: ListBot :many
 SELECT * FROM bot WHERE deleted IS NULL;

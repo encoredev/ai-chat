@@ -10,12 +10,16 @@ import (
 	"encore.dev/types/uuid"
 )
 
+type Avatar struct {
+	BotID  uuid.UUID
+	Avatar []byte
+}
+
 type Bot struct {
 	ID       uuid.UUID
 	Name     string
 	Prompt   string
 	Profile  string
-	Avatar   []byte
 	Provider string
 	Deleted  sql.NullTime
 }

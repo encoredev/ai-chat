@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/nfnt/resize"
 
+	botsvc "encore.app/bot"
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
 	"encore.app/chat/provider/discord/db"
@@ -216,8 +217,8 @@ func generateAvatarDataURI(data []byte) (string, error) {
 func (c *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	var err error
 	avatarURI := ""
-	if len(bot.Avatar) > 0 {
-		avatarURI, err = generateAvatarDataURI(bot.Avatar)
+	if avatar, err := botsvc.AvatarBlob(ctx, bot.ID); err == nil && avatar != nil {
+		avatarURI, err = generateAvatarDataURI(avatar.Avatar)
 		if err != nil {
 			return errors.Wrap(err, "error generating avatar data URI")
 		}

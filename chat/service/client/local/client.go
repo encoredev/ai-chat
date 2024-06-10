@@ -58,7 +58,7 @@ func (c *Channel) ListMessages(ctx context.Context, from *chatdb.Message) ([]*pr
 
 func (c *Channel) Info(ctx context.Context) (provider.ChannelInfo, error) {
 	return provider.ChannelInfo{
-		Provider: chatdb.ProviderEncorechat,
+		Provider: chatdb.ProviderLocalchat,
 		ID:       c.channelID,
 		Name:     c.channelID,
 	}, nil

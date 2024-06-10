@@ -23,7 +23,7 @@ func (d *DataSource) GetChannel(ctx context.Context, id string) (*db.Channel, bo
 	q := db.New()
 	channel, err := q.GetChannelByProviderID(ctx, chatDb.Stdlib(), db.GetChannelByProviderIDParams{
 		ProviderID: id,
-		Provider:   db.ProviderEncorechat,
+		Provider:   db.ProviderLocalchat,
 	})
 	if err != nil {
 		return nil, false
