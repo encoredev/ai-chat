@@ -137,6 +137,8 @@ func (svc *Service) GenerateBotProfile(ctx context.Context, req *GenerateBotProf
 	if err != nil {
 		return nil, errors.Wrap(err, "ask")
 	}
+	resp = strings.TrimPrefix(resp, "```")
+	resp = strings.TrimSuffix(resp, "```")
 	img, err := svc.generateAvatar(ctx, req.Provider, resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "generate avatar")
