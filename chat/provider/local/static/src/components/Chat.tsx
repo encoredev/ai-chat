@@ -241,8 +241,7 @@ export const Chat = ({
                   {activeConversation?.participants.map((p) => {
                     const isBot = !!getUser(p.id)?.avatar;
                     return (
-                      // <Avatar status="available" src={getUser(p.id)?.avatar}>
-                      <Avatar src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80">
+                      <Avatar status="available" src={getUser(p.id)?.avatar}>
                         {!isBot && <ProfileCircle user={user} size="sm" />}
                       </Avatar>
                     );
@@ -259,39 +258,40 @@ export const Chat = ({
           {currentMessages.map((g) => (
             <MessageGroup key={g.id}>
               <MessageGroup.Messages>
-                {g.messages.map((m: ChatMessage<MessageContentType>) => (
-                  <Message
-                    key={m.id}
-                    className="w-full !p-2 hover:bg-gray-700 transition"
-                    model={{
-                      type: "custom",
-                      direction: "incoming",
-                      position: "normal",
-                    }}
-                    avatarPosition="tl"
-                  >
-                    <Avatar
-                      name={m.senderId}
-                      status="available"
-                      src={getUser(m.senderId)?.avatar}
+                {g.messages.map((m: ChatMessage<MessageContentType>) => {
+                  const isBot = !!getUser(m.senderId)?.avatar;
+                  return (
+                    <Message
+                      key={m.id}
+                      className="w-full !p-2 hover:bg-gray-700 transition"
+                      model={{
+                        type: "custom",
+                        direction: "incoming",
+                        position: "normal",
+                      }}
+                      avatarPosition="tl"
                     >
-                      {m.senderId === user.id && (
-                        <ProfileCircle user={user} size="md" />
-                      )}
-                    </Avatar>
-                    <Message.CustomContent className="-mt-2 text-white">
-                      <p className="flex items-center space-x-3">
-                        <span className="font-semibold">
-                          {getUser(m.senderId)?.username}
-                        </span>
-                        <span className="text-gray-500 text-xs">
-                          {getTodaysDate()}
-                        </span>
-                      </p>
-                      <p>{m.content as unknown as string}</p>
-                    </Message.CustomContent>
-                  </Message>
-                ))}
+                      <Avatar
+                        name={m.senderId}
+                        status="available"
+                        src={getUser(m.senderId)?.avatar}
+                      >
+                        {!isBot && <ProfileCircle user={user} size="md" />}
+                      </Avatar>
+                      <Message.CustomContent className="-mt-2 text-white">
+                        <p className="flex items-center space-x-3">
+                          <span className="font-semibold">
+                            {getUser(m.senderId)?.username}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {getTodaysDate()}
+                          </span>
+                        </p>
+                        <p>{m.content as unknown as string}</p>
+                      </Message.CustomContent>
+                    </Message>
+                  );
+                })}
               </MessageGroup.Messages>
             </MessageGroup>
           ))}
