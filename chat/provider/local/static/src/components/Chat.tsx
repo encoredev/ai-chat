@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useState } from "react";
 
 import {
   Avatar,
+  AvatarGroup,
   ChatContainer,
   ConversationHeader,
   MainContainer,
@@ -29,8 +30,10 @@ import { ExampleChatService } from "./ChatService";
 import ProfileModal from "./ProfileModal";
 import AddBotModal, { AddBotStatus } from "./AddBotModal";
 import {
+  DiscordLogo,
   List,
   Robot,
+  SlackLogo,
   Spinner,
   User as UserIcon,
   WarningCircle,
@@ -227,10 +230,26 @@ export const Chat = ({
             )}
           </ConversationHeader.Back>
           <ConversationHeader.Content>
-            <p className="flex font-mono items-center space-x-2 text-white font-semibold px-4 py-2">
-              <span className="opacity-50 text-xl">#</span>{" "}
-              <span className="text-sm">{channelID}</span>
-            </p>
+            <div className="flex items-center justify-between mr-4">
+              <p className="flex font-mono items-center space-x-2 text-white font-semibold px-4 py-2">
+                <span className="opacity-50 text-xl">#</span>{" "}
+                <span className="text-sm">{channelID}</span>
+              </p>
+
+              <ConversationHeader.Back className="ml-4">
+                <AvatarGroup size="sm">
+                  {activeConversation?.participants.map((p) => {
+                    const isBot = !!getUser(p.id)?.avatar;
+                    return (
+                      // <Avatar status="available" src={getUser(p.id)?.avatar}>
+                      <Avatar src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80">
+                        {!isBot && <ProfileCircle user={user} size="sm" />}
+                      </Avatar>
+                    );
+                  })}
+                </AvatarGroup>
+              </ConversationHeader.Back>
+            </div>
           </ConversationHeader.Content>
         </ConversationHeader>
         <MessageList
@@ -256,7 +275,9 @@ export const Chat = ({
                       status="available"
                       src={getUser(m.senderId)?.avatar}
                     >
-                      {m.senderId === user.id && <ProfileCircle user={user} />}
+                      {m.senderId === user.id && (
+                        <ProfileCircle user={user} size="md" />
+                      )}
                     </Avatar>
                     <Message.CustomContent className="-mt-2 text-white">
                       <p className="flex items-center space-x-3">
@@ -317,20 +338,20 @@ const ChatSidebar: FC<{
     >
       <div>
         {activeConversation?.participants.map((p) => {
-          const isUser = p.id === user.id;
+          const isBot = !!getUser(p.id)?.avatar;
           return (
             <div
               id={p.id}
               className={`
                   flex space-x-2 items-center px-4 py-3 hover:!bg-gray-800
-                  ${isUser ? "cursor-default" : "cursor-pointer"}
+                  ${isBot ? "cursor-pointer" : "cursor-default"}
                 `}
               onClick={() => {
-                if (!isUser) setUserProfile(getUser(p.id));
+                if (isBot) setUserProfile(getUser(p.id));
               }}
             >
               <Avatar status="available" src={getUser(p.id)?.avatar}>
-                {isUser && <ProfileCircle user={user} />}
+                {!isBot && <ProfileCircle user={user} size="md" />}
               </Avatar>
               <div>
                 <span className="text-white font-semibold">
@@ -384,8 +405,31 @@ const ChatSidebar: FC<{
         </div>
       </div>
 
-      <div className="px-2">
-        <a href="https://github.com/encoredev/ai-chat/tree/main">
+      <div className="px-4 pb-2">
+        <a
+          href="https://github.com/encoredev/ai-chat/tree/main?tab=readme-ov-file#adding-a-discord-bot"
+          target="_blank"
+        >
+          <div className="flex items-center text-white text-sm space-x-2 mb-4 opacity-70 cursor-pointer hover:opacity-100">
+            <DiscordLogo className="w-6 h-6" />
+            <p>Add to your Discord</p>
+          </div>
+        </a>
+
+        <a
+          href="https://github.com/encoredev/ai-chat/tree/main?tab=readme-ov-file#adding-a-slack-bot"
+          target="_blank"
+        >
+          <div className="flex items-center text-white text-sm space-x-2 mb-4 opacity-70 cursor-pointer hover:opacity-100">
+            <SlackLogo className="w-6 h-6" />
+            <p>Add to your Slack</p>
+          </div>
+        </a>
+
+        <a
+          href="https://github.com/encoredev/ai-chat/tree/main"
+          target="_blank"
+        >
           <img
             src={poweredBy}
             alt="Powered by Encore"
@@ -397,11 +441,23 @@ const ChatSidebar: FC<{
   );
 };
 
-const ProfileCircle: FC<{ user?: User }> = ({ user }) => {
+const ProfileCircle: FC<{ user?: User; size: "md" | "sm" }> = ({
+  user,
+  size,
+}) => {
   return (
-    <figure className="flex items-center justify-center rounded-full bg-blue h-[40px] w-[40px] relative uppercase text-white text-lg font-semibold">
-      {user?.username[0]}
-      {user?.username[1]}
+    <figure
+      className={`
+        flex items-center justify-center rounded-full bg-blue relative uppercase text-white text-lg font-semibold
+        ${size === "md" ? "h-[40px] w-[40px]" : "h-[26px] w-[26px]"}
+      `}
+    >
+      {size === "md" && (
+        <>
+          {user?.username[0]}
+          {user?.username[1]}
+        </>
+      )}
     </figure>
   );
 };
