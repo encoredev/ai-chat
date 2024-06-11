@@ -3,6 +3,7 @@ package gemini
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"cloud.google.com/go/vertexai/genai"
@@ -12,10 +13,10 @@ import (
 	"encore.app/llm/provider"
 	"encore.app/pkg/fns"
 	"encore.dev/config"
+	"encore.dev/rlog"
 )
 
 type Config struct {
-	Project     config.String
 	Model       config.String
 	Region      config.String
 	Temperature config.Float32
@@ -48,11 +49,19 @@ func (p *Service) Ping(ctx context.Context) error {
 
 // initService initializes the Gemini service by creating a client and configuring the model.
 func initService() (*Service, error) {
-	if secrets.GeminiJSONCredentials == "" || cfg.Project() == "" {
+	if secrets.GeminiJSONCredentials == "" {
 		return nil, nil
 	}
+	var projConf struct {
+		ProjectID string `json:"project_id"`
+	}
+	err := json.Unmarshal([]byte(secrets.GeminiJSONCredentials), &projConf)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse gemini credentials")
+	}
+	rlog.Info("Initializing Gemini service", "project_id", projConf.ProjectID, "model", cfg.Model(), "region", cfg.Region())
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, cfg.Project(), cfg.Region(), option.WithCredentialsJSON([]byte(secrets.GeminiJSONCredentials)))
+	client, err := genai.NewClient(ctx, projConf.ProjectID, cfg.Region(), option.WithCredentialsJSON([]byte(secrets.GeminiJSONCredentials)))
 	if err != nil {
 		return nil, errors.Wrap(err, "create client")
 	}

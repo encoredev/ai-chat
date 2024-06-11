@@ -24,7 +24,7 @@ var BaseURL = func() url.URL {
 	baseURL := encore.Meta().APIBaseURL
 	if encore.Meta().Environment.Cloud == encore.CloudLocal {
 		if secrets.NGrokToken == "" {
-			rlog.Warn("NGrokToken or NGrokDomain is not set, skipping ngrok")
+			rlog.Warn("NGrokToken is not set, skipping ngrok")
 			return baseURL
 		}
 		rlog.Info("Starting ngrok")
