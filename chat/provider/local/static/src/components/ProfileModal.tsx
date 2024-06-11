@@ -21,16 +21,16 @@ const ProfileModal: FC<
         <div className="mt-3 sm:mt-5">
           <DialogTitle
             as="h3"
-            className="flex items-center text-black text-2xl font-semibold leading-6"
+            className="flex items-center text-white text-2xl font-semibold leading-6"
           >
             {currentUser?.username}
             <span className="ml-2.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-green">
               <span className="sr-only">Online</span>
             </span>
           </DialogTitle>
-          <div className="mt-2 text-gray-500">
-            <h4 className="font-semibold">Bio</h4>
-            <p className="text-sm">{currentUser?.bio}</p>
+          <div className="mt-2">
+            <span className="text-gray-400 font-semibold leading-6">Bio</span>
+            <p className="text-sm text-white">{currentUser?.bio}</p>
           </div>
         </div>
       </div>

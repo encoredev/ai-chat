@@ -75,16 +75,18 @@ const AddBotModal: FC<
 
   return (
     <Modal show={show} onHide={onHide}>
-      <div className="text-black">
+      <div className="text-white">
         <DialogTitle className="font-bold text-xl mb-4">
           Create a Bot
         </DialogTitle>
 
         <label className="flex flex-col">
-          <span className="text-gray-500">Name</span>
+          <span className="text-gray-400 text-sm font-semibold leading-6">
+            Name
+          </span>
           <input
             type="text"
-            className="w-full rounded-sm border-gray-500 focus:ring-0 focus:border-gray-500"
+            className="w-full rounded-sm border-gray-500 text-black placeholder-black/40 focus:ring-0 focus:border-gray-500"
             placeholder="Adam"
             value={botName}
             onChange={(e) => setBotName(e.target.value)}
@@ -92,10 +94,12 @@ const AddBotModal: FC<
         </label>
 
         <label className="flex flex-col mt-4">
-          <span className="text-gray-500">Bot Description</span>
+          <span className="text-gray-400 text-sm font-semibold leading-6">
+            Bot Description
+          </span>
           <textarea
             rows={3}
-            className="w-full rounded-sm border-gray-500 focus:ring-0 focus:border-gray-500"
+            className="w-full rounded-sm border-gray-500 text-black placeholder-black/40 focus:ring-0 focus:border-gray-500"
             placeholder="A depressed accountant"
             value={botPrompt}
             onChange={(e) => setBotPrompt(e.target.value)}
@@ -105,7 +109,7 @@ const AddBotModal: FC<
         <div className="flex space-x-4 justify-end mt-6">
           <Button
             size="sm"
-            mode="dark"
+            mode="light"
             disabled={disableButton}
             onClick={createBot}
           >

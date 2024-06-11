@@ -41,11 +41,11 @@ const Modal: FC<ModalProps & PropsWithChildren> = ({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <DialogPanel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all w-full sm:my-8 sm:max-w-xl sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-2 pt-2 sm:block">
+              <DialogPanel className="relative transform overflow-hidden rounded-lg bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all w-full sm:my-8 sm:max-w-xl sm:p-6">
+                <div className="absolute right-0 top-0 pr-2 pt-2">
                   <button
                     type="button"
-                    className="rounded-full p-2 bg-white text-gray-500 hover:text-gray-800 focus:outline-none transition"
+                    className="rounded-full p-2 bg-gray-800 text-gray-500 hover:text-white focus:outline-none transition"
                     onClick={onHide}
                   >
                     <span className="sr-only">Close</span>

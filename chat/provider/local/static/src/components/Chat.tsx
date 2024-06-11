@@ -67,19 +67,15 @@ export const Chat = ({
     addUser,
   } = useChat();
 
-  useState(() => {
+  const [botStatus, setBotStatus] = useState<AddBotStatus | undefined>();
+
+  const chatService = service as ExampleChatService;
+  useEffect(() => {
     let conv = new Conv({
       id: channelID,
       participants: [new Participant({ id: user.id })],
     });
     addConversation(conv);
-    return conv;
-  });
-
-  const [botStatus, setBotStatus] = useState<AddBotStatus | undefined>();
-
-  const chatService = service as ExampleChatService;
-  useEffect(() => {
     addUser(user);
     setActiveConversation(channelID);
     chatService.joinChannel(channelID);
@@ -237,16 +233,26 @@ export const Chat = ({
               </p>
 
               <ConversationHeader.Back className="ml-4">
-                <AvatarGroup size="sm">
-                  {activeConversation?.participants.map((p) => {
-                    const isBot = !!getUser(p.id)?.avatar;
-                    return (
-                      <Avatar src={getUser(p.id)?.avatar}>
-                        {!isBot && <ProfileCircle user={user} size="sm" />}
-                      </Avatar>
-                    );
-                  })}
-                </AvatarGroup>
+                {activeConversation?.participants &&
+                activeConversation.participants.length <= 1 ? (
+                  <div className="animate-pulse flex items-center space-x-1">
+                    <Robot size={20} color={WHITE} />
+                    <span className="text-white text-xs font-semibold">
+                      Bots joining...
+                    </span>
+                  </div>
+                ) : (
+                  <AvatarGroup size="sm">
+                    {activeConversation?.participants.map((p) => {
+                      const isBot = !!getUser(p.id)?.avatar;
+                      return (
+                        <Avatar key={p.id} src={getUser(p.id)?.avatar}>
+                          {!isBot && <ProfileCircle user={user} size="sm" />}
+                        </Avatar>
+                      );
+                    })}
+                  </AvatarGroup>
+                )}
               </ConversationHeader.Back>
             </div>
           </ConversationHeader.Content>
@@ -273,8 +279,13 @@ export const Chat = ({
                     >
                       <Avatar
                         name={m.senderId}
+                        className="cursor-pointer"
                         status="available"
                         src={getUser(m.senderId)?.avatar}
+                        onClick={() => {
+                          console.log("click");
+                          if (isBot) setUserProfile(getUser(m.senderId));
+                        }}
                       >
                         {!isBot && <ProfileCircle user={user} size="md" />}
                       </Avatar>
@@ -298,12 +309,13 @@ export const Chat = ({
         </MessageList>
         <MessageInput
           className="!bg-gray-800 !border-none !pb-4 !pr-3"
+          autoFocus
           value={currentMessage}
           onChange={handleChange}
           onSend={handleSend}
           disabled={!activeConversation}
           attachButton={false}
-          placeholder="Type here..."
+          placeholder={`Message #${channelID}`}
         />
       </ChatContainer>
     </MainContainer>
@@ -341,7 +353,7 @@ const ChatSidebar: FC<{
           const isBot = !!getUser(p.id)?.avatar;
           return (
             <div
-              id={p.id}
+              key={p.id}
               className={`
                   flex space-x-2 items-center px-4 py-3 hover:!bg-gray-800
                   ${isBot ? "cursor-pointer" : "cursor-default"}

@@ -7,7 +7,19 @@ body {
 }
 
 .cs-message-input__content-editor, .cs-message-input__content-editor-wrapper {
-  @apply !bg-gray-700 !text-white;
+  @apply !bg-gray-700 !text-white border border-white border-opacity-40;
+}
+
+.cs-button--send {
+  @apply !bg-blue !text-white !rounded-full;
+  padding: 0 !important;
+  height: 40px !important;
+  width: 40px !important;
+  margin-left: 10px !important;
+}
+
+.cs-button--send svg {
+  margin-left: -2px;
 }
 
 .cs-message-input__content-editor-wrapper {
@@ -16,10 +28,6 @@ body {
 
 .cs-message-input__content-editor[data-placeholder]:empty:before {
   @apply !text-gray-500;
-}
-
-.cs-message-input__tools {
-  @apply !hidden;
 }
 
 .cs-message__content {

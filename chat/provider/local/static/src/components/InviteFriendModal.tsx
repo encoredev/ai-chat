@@ -10,17 +10,17 @@ const InviteFriendModal: FC<
   const url = location.origin + `?channel=${channelID}`;
   return (
     <Modal show={show} onHide={onHide}>
-      <div className="text-black">
+      <div className="text-white">
         <DialogTitle className="font-bold text-xl mb-4">
           Invite a friend
         </DialogTitle>
 
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="mb-4 text-sm text-gray-400">
           Send this URL to a friend to let them join the chat:
         </p>
         <div>
           <span
-            className="whitespace-nowrap border border-black/20 rounded-md p-1 mt-2 cursor-pointer px-2 py-1"
+            className="text-xs whitespace-nowrap border border-white/20 rounded-md mt-2 cursor-pointer px-2 py-1"
             onClick={(event) => selectContents(event.target)}
           >
             {url}
