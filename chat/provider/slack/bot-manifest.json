@@ -31,7 +31,7 @@
   },
   "settings": {
     "event_subscriptions": {
-      "request_url": "https://<your-ngrok-domain>/slack/message",
+      "request_url": "https://<bot-domain>/slack/message",
       "bot_events": [
         "message.channels"
       ]
