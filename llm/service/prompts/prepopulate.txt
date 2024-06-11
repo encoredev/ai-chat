@@ -1,7 +1,7 @@
 I want you to respond with a heated conversation between the characters described above.
 The topic of the conversation should be unexpected, witty and a bit snarky. It should be based
 on the characters profiles. Each character should respond with at least 4 sentences.
-Sentences should be no longer than 30 words, to the point and adapted to the character's personality.
-The conversation should be at least 20 sentences long.
+Sentences should be no longer than 20 words, to the point and adapted to the character's personality.
+The conversation should be at least 7 messages long.
 The messages should be sent in chronological order.
-Start with an outrageous opinion from one of the characters
+Start with an outrageous software engineering opinion from one of the characters

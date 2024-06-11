@@ -59,15 +59,27 @@ func SelectRandom[T any](slice []T, n int) []T {
 	if len(slice) <= n {
 		return slice
 	}
+	rand.Seed(uint64(time.Now().UnixNano()))
 	rtn := make([]T, n)
 	for i := range rtn {
 		// select and pop a random index from the slice
 		randIndex := rand.Intn(len(slice))
 		rtn[i] = slice[randIndex]
-		slice[randIndex] = slice[len(slice)-1]
+		slice = append(slice[:randIndex], slice[randIndex+1:]...)
 	}
 	return rtn
+}
 
+func Unique[T comparable](slice []T) []T {
+	m := make(map[T]struct{})
+	var rtn []T
+	for _, v := range slice {
+		if _, ok := m[v]; !ok {
+			m[v] = struct{}{}
+			rtn = append(rtn, v)
+		}
+	}
+	return rtn
 }
 
 func CloseIgnore(stream io.Closer) {
