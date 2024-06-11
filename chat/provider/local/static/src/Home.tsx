@@ -133,7 +133,9 @@ export const Home: FC<{}> = () => {
                 <span className="hidden sm:inline">
                   Join {channelID ? "channel " + channelID : "Chat"}
                 </span>
-                <span className="inline sm:hidden">Join channel</span>
+                <span className="inline sm:hidden">
+                  Join {channelID ? "Channel" : "Chat"}
+                </span>
               </Button>
             </form>
           </div>
@@ -174,7 +176,7 @@ export const Home: FC<{}> = () => {
       </div>
 
       <div className="absolute bottom-6 left-6 max-w-52 md:bottom-4 md:left-4">
-        <a href="https://github.com/encoredev/ai-chat/tree/main">
+        <a href="https://github.com/encoredev/encore" target="_blank">
           <img
             src={poweredBy}
             alt="Powered by Encore"

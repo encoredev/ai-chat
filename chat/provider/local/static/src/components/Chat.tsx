@@ -31,6 +31,7 @@ import ProfileModal from "./ProfileModal";
 import AddBotModal, { AddBotStatus } from "./AddBotModal";
 import {
   DiscordLogo,
+  GithubLogo,
   List,
   Robot,
   SlackLogo,
@@ -247,7 +248,9 @@ export const Chat = ({
                       const isBot = !!getUser(p.id)?.avatar;
                       return (
                         <Avatar key={p.id} src={getUser(p.id)?.avatar}>
-                          {!isBot && <ProfileCircle user={user} size="sm" />}
+                          {!isBot && (
+                            <ProfileCircle user={getUser(p.id)} size="sm" />
+                          )}
                         </Avatar>
                       );
                     })}
@@ -333,7 +336,6 @@ const ChatSidebar: FC<{
   showInviteFriendModal: () => void;
 }> = ({
   activeConversation,
-  user,
   setUserProfile,
   getUser,
   botStatus,
@@ -364,7 +366,7 @@ const ChatSidebar: FC<{
               }}
             >
               <Avatar status="available" src={getUser(p.id)?.avatar}>
-                {!isBot && <ProfileCircle user={user} size="md" />}
+                {!isBot && <ProfileCircle user={getUser(p.id)} size="md" />}
               </Avatar>
               <div>
                 <span className="text-white font-semibold">
@@ -463,10 +465,14 @@ const ChatSidebar: FC<{
           </div>
         </a>
 
-        <a
-          href="https://github.com/encoredev/ai-chat/tree/main"
-          target="_blank"
-        >
+        <a href="https://github.com/encoredev/ai-chat" target="_blank">
+          <div className="flex items-center text-white text-sm space-x-2 mb-4 opacity-70 cursor-pointer hover:opacity-100">
+            <GithubLogo className="w-6 h-6" />
+            <p>Source code</p>
+          </div>
+        </a>
+
+        <a href="https://github.com/encoredev/encore" target="_blank">
           <img
             src={poweredBy}
             alt="Powered by Encore"
