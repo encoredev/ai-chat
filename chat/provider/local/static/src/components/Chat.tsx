@@ -283,11 +283,12 @@ export const Chat = ({
                         status="available"
                         src={getUser(m.senderId)?.avatar}
                         onClick={() => {
-                          console.log("click");
                           if (isBot) setUserProfile(getUser(m.senderId));
                         }}
                       >
-                        {!isBot && <ProfileCircle user={user} size="md" />}
+                        {!isBot && (
+                          <ProfileCircle user={getUser(m.senderId)} size="md" />
+                        )}
                       </Avatar>
                       <Message.CustomContent className="-mt-2 text-white">
                         <p className="flex items-center space-x-3">
