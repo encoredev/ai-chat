@@ -143,5 +143,6 @@ func (*Service) Avatar(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Bot has no avatar", http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Cache-Control", "public, max-age=31536000")
 	http.ServeContent(w, req, "avatar.png", time.Now(), bytes.NewReader(bot.Avatar))
 }
