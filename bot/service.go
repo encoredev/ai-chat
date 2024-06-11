@@ -106,7 +106,7 @@ func (svc *Service) Get(ctx context.Context, id uuid.UUID) (*db.Bot, error) {
 
 // GetAvatar returns the avatar byte blob
 //
-//encore:api public method=GET path=/bots/:id/avatar/blob
+//encore:api private method=GET path=/bots/:id/avatar/blob
 func (svc *Service) AvatarBlob(ctx context.Context, id uuid.UUID) (*db.Avatar, error) {
 	res, err := db.New().GetAvatar(ctx, botdb.Stdlib(), id)
 	if err != nil {
@@ -117,7 +117,7 @@ func (svc *Service) AvatarBlob(ctx context.Context, id uuid.UUID) (*db.Avatar, e
 
 // Delete deletes a bot by ID.
 //
-//encore:api public method=DELETE path=/bots/:id
+//encore:api private method=DELETE path=/bots/:id
 func (svc *Service) Delete(ctx context.Context, id uuid.UUID) (*db.Bot, error) {
 	return db.New().DeleteBot(ctx, botdb.Stdlib(), id)
 }
