@@ -135,7 +135,7 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afte
 	if err != nil {
 		return errors.Wrap(err, "get channel")
 	}
-	if channel != nil {
+	if channel == nil {
 		_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
 			Provider:   chatdb.ProviderLocalchat,
 			ProviderID: uuid.Must(uuid.NewV4()).String(),
