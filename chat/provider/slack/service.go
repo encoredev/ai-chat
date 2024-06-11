@@ -76,13 +76,13 @@ type ChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
 
-// WebhookMessage handles incoming slack messages and publishes them to the message topic.
+// SlackEventHandler handles incoming slack messages and publishes them to the message topic.
 // The webhook URL must be set in the slack app configuration.
 // To test it locally, you can use the ngrok integration in the proxy package which automatically spins up
 // a tunnel to your local machine. Learn more: https://ngrok.com/
 //
-//encore:api private path=/slack/message
-func (svc *Service) WebhookMessage(ctx context.Context, req *SlackEvent) (*ChallengeResponse, error) {
+//encore:api public path=/slack/message
+func (svc *Service) SlackEventHandler(ctx context.Context, req *SlackEvent) (*ChallengeResponse, error) {
 	switch req.Type {
 	case "url_verification":
 		return &ChallengeResponse{

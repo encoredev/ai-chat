@@ -58,6 +58,8 @@ func (svc *Service) ListChannels(ctx context.Context, req *ListChannelRequest) (
 	return &ListChannelsResponse{Channels: channels}, nil
 }
 
+// AddBotToProviderChannel looks up the uuid of the channel by provider ID and calls AddBotToChannel.
+//
 //encore:api public method=POST path=/chat/provider/:provider/channels/:channelID/bots/:botID
 func (svc *Service) AddBotToProviderChannel(ctx context.Context, provider string, channelID string, botID uuid.UUID) error {
 	q := db.New()
@@ -112,6 +114,8 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	return nil
 }
 
+// RemoveBotFromProviderChannel looks up the uuid of the channel by provider ID and calls RemoveBotFromChannel.
+//
 //encore:api public method=DELETE path=/chat/provider/:provider/channels/:channelID/bots/:botID
 func (svc *Service) RemoveBotFromProviderChannel(ctx context.Context, provider string, channelID string, botID uuid.UUID) error {
 	q := db.New()

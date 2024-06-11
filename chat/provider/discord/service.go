@@ -78,21 +78,6 @@ func (p *Service) Ping(ctx context.Context) error {
 	return nil
 }
 
-type DiscordAuthRequest struct {
-	Code        string `json:"code"`
-	GuildID     string `json:"guild_id"`
-	Permissions int64  `json:"permissions"`
-}
-
-// AuthURL is a public API which can be used as a forward URL for Discord OAuth. It's not implemented but
-// kept here as an example of how to integrate oauth with Discord.
-//
-//encore:api public method=GET path=/discord/oauth
-func (p *Service) AuthURL(ctx context.Context, req *DiscordAuthRequest) error {
-	// Encrypt and store the token somewhere
-	return nil
-}
-
 // ListChannels returns a list of channels in all the guilds the bot is a part of.
 //
 //encore:api private method=GET path=/discord/channels

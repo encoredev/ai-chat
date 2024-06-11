@@ -1,3 +1,4 @@
+// The local service is a simple chat provider which allows users to chat with bots (and eachother) in a hosted web chat
 package local
 
 import (
@@ -42,6 +43,8 @@ func initService() (*Service, error) {
 	return svc, nil
 }
 
+// CloseAllClients is an admin endpoint to forcefully terminate all client websocket connections.
+//
 //encore:api private
 func (p *Service) CloseAllClients(ctx context.Context) error {
 	if p == nil {
@@ -52,6 +55,7 @@ func (p *Service) CloseAllClients(ctx context.Context) error {
 }
 
 // Ping returns an error if the Discord service is not available.
+//
 // encore:api private
 func (p *Service) Ping(ctx context.Context) error {
 	if p == nil {
@@ -63,6 +67,8 @@ func (p *Service) Ping(ctx context.Context) error {
 //go:embed static/build/*
 var staticFiles embed.FS
 
+// ServeHTML serves the static HTML files for the chat provider.
+//
 //encore:api public raw path=/!fallback
 func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 	if !cfg.Enabled() {
@@ -87,6 +93,8 @@ type ListBotResponse struct {
 	Bots []BotInfo `json:"bots"`
 }
 
+// ListBots returns a list of all available bots.
+//
 //encore:api public method=GET path=/localchat/bots
 func (s *Service) ListBots(ctx context.Context) (*ListBotResponse, error) {
 	bots, err := bot.List(ctx, &bot.ListBotRequest{})
@@ -105,6 +113,8 @@ func (s *Service) ListBots(ctx context.Context) (*ListBotResponse, error) {
 
 }
 
+// Subscribe is a websocket endpoint for clients to subscribe to chat messages.
+//
 //encore:api public raw path=/localchat/subscribe
 func (s *Service) Subscribe(w http.ResponseWriter, r *http.Request) {
 	if !cfg.Enabled() {
@@ -119,7 +129,9 @@ func (s *Service) Subscribe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//encore:api public method=POST path=/localchat/channels/:channelID/join
+// JoinChannel broadcasts a message to all clients that a bot has joined a channel.
+//
+//encore:api private method=POST path=/localchat/channels/:channelID/join
 func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.Bot) error {
 	s.hub.BroadCast(ctx, &chat.ClientMessage{
 		Type:           "join",
@@ -232,6 +244,8 @@ func (s *Service) handleClientMessage(ctx context.Context, clientMsg *chat.Clien
 	return errors.Wrap(err, "publish message")
 }
 
+// SendTyping broadcasts a typing message to all clients in a channel.
+//
 //encore:api private method=POST path=/localchat/channels/:channelID/bots/:botID
 func (s *Service) SendTyping(ctx context.Context, channelID string, botID uuid.UUID) error {
 	s.hub.BroadCast(ctx, &chat.ClientMessage{
@@ -242,6 +256,8 @@ func (s *Service) SendTyping(ctx context.Context, channelID string, botID uuid.U
 	return nil
 }
 
+// SendMessage broadcasts a message to all connected clients in a channel.
+//
 //encore:api private method=POST path=/localchat/channels/:channelID/messages
 func (s *Service) SendMessage(ctx context.Context, channelID string, req *provider.SendMessageRequest) error {
 	if req.Bot == nil {

@@ -96,22 +96,6 @@ func initService() (*Service, error) {
 	return svc, nil
 }
 
-type GenerateAvatarRequest struct {
-	Prompt string
-}
-
-type GenerateAvatarResponse struct {
-	Image []byte
-}
-
-// GenerateAvatar generates an avatar image from a prompt. Imagen is however not yet publicly available.
-// This method is a placeholder for future functionality.
-//
-//encore:api private method=POST path=/gemini/generate-avatar
-func (p *Service) GenerateAvatar(ctx context.Context, req *GenerateAvatarRequest) (*GenerateAvatarResponse, error) {
-	return nil, nil
-}
-
 type AskRequest struct {
 	Message string
 }
@@ -147,7 +131,8 @@ func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error
 	return &AskResponse{Message: flattenResponse(resp)}, nil
 }
 
-// ContinueChat sends a series of messages to the Gemini API and returns the response.
+// ContinueChat sends a series of messages to the Gemini API. The responses are streamed back to the chat service
+// using a pubsub topic.
 //
 //encore:api private method=POST path=/gemini/continue-chat
 func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {

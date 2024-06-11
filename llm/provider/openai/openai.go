@@ -138,6 +138,8 @@ func (p *Service) Ask(ctx context.Context, req *AskRequest) (*AskResponse, error
 	return &AskResponse{Message: resp.Choices[0].Message.Content}, nil
 }
 
+// CancelTask cancels an active task by ID. It's used to cancel queued chat completions.
+//
 //encore:api private method=DELETE path=/openai/task/:taskID
 func (p *Service) CancelTask(ctx context.Context, taskID string) error {
 	p.mu.Lock()
@@ -149,7 +151,8 @@ func (p *Service) CancelTask(ctx context.Context, taskID string) error {
 	return nil
 }
 
-// ContinueChat continues a chat conversation with the OpenAI chat model.
+// ContinueChat continues a chat conversation with the OpenAI chat model. The responses are streamed back to the chat service
+// using the a pubsub topic
 //
 //encore:api private method=POST path=/openai/continue-chat
 func (p *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {

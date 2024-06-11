@@ -24,6 +24,8 @@ type InstructRequest struct {
 	Instruction string
 }
 
+// InstructBotInProviderChannel looks up a channel by provider and channelID and calls InstructBotInChannel.
+//
 //encore:api public method=POST path=/chat/provider/:provider/channels/:channelID/instruct
 func (svc *Service) InstructBotInProviderChannel(ctx context.Context, provider string, channelID string, req *InstructRequest) error {
 	q := db.New()
@@ -112,6 +114,8 @@ func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llmprovider.Bo
 	return nil
 }
 
+// ProcessProviderEvent processes an event from a chat provider. It can be a message or a channel creation event.
+//
 //encore:api private path=/chat/events/provider method=POST
 func (svc *Service) ProcessProviderEvent(ctx context.Context, event *provider.Message) error {
 	switch event.Type {
@@ -122,6 +126,10 @@ func (svc *Service) ProcessProviderEvent(ctx context.Context, event *provider.Me
 	}
 }
 
+// ProcessProviderChannelCreated processes a channel creation event from a chat provider. It inserts the channel into the
+// database and assigns two bots to the channel. It then sends a prepopulate task to the LLM provider to prepopulate the
+// channel with messages.
+//
 //encore:api private path=/chat/events/provider/channel method=POST
 func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *provider.Message) error {
 	prov, ok := svc.providers[msg.Provider]
