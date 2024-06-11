@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen": "encore gen client slackbot-regi --output=./src/client.ts --env=local"
   },
   "dependencies": {
     "@chatscope/chat-ui-kit-react": "^2.0.3",

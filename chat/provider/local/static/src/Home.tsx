@@ -7,19 +7,29 @@ import { FC, useEffect, useState } from "react";
 import { humanId } from "human-id";
 import poweredBy from "./assets/powered-by-encore.png";
 import Button from "./components/Button";
+import Client, { Local } from "./client";
+
+interface Bot {
+  name: string;
+  avatar: string;
+}
+
+const apiURL = import.meta.env.DEV
+  ? Local
+  : window.location.protocol + "//" + window.location.host;
+
+const client = new Client(apiURL);
 
 export const Home: FC<{}> = () => {
   let [username, setUsername] = useState("");
-  const [status, setStatus] = useState("typing");
-  const [botsLive, setBotsLive] = useState<{ name: string; avatar: string }[]>(
-    [],
-  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [botsLive, setBotsLive] = useState<Bot[]>([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const channelID = searchParams.get("channel");
 
   async function joinChat() {
-    setStatus("submitting");
+    setIsSubmitting(true);
     navigate({
       pathname: "/chat",
       search: createSearchParams({
@@ -30,23 +40,10 @@ export const Home: FC<{}> = () => {
   }
 
   useEffect(() => {
-    const apiURL = import.meta.env.DEV
-      ? "http://localhost:4000"
-      : window.location.protocol + "//" + window.location.host;
-
-    fetch(`${apiURL}/localchat/bots`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+    client.local
+      .ListBots()
       .then((resp) => {
-        if (resp.ok) {
-          return resp.json();
-        }
-      })
-      .then((json) => {
-        setBotsLive(json.bots);
+        setBotsLive(resp.bots);
       })
       .catch((err) => {
         console.error(err);
@@ -128,7 +125,7 @@ export const Home: FC<{}> = () => {
                 mode="light"
                 size="lg"
                 type="submit"
-                disabled={!username || status === "submitting"}
+                disabled={!username || isSubmitting}
               >
                 <span className="hidden sm:inline">
                   Join {channelID ? "channel " + channelID : "Chat"}

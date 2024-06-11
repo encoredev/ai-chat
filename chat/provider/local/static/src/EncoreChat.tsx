@@ -17,7 +17,7 @@ import { useSearchParams } from "react-router-dom";
 export const EncoreChat = () => {
   const [searchParams] = useSearchParams();
   const channelID = searchParams.get("channel") || humanId();
-  const userName = searchParams.get("name") || "Sam";
+  const userName = searchParams.get("name") || "User";
 
   const user = new User({
     id: userName,

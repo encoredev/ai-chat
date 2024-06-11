@@ -2,11 +2,18 @@ import { FC, useEffect, useState } from "react";
 import { DialogTitle } from "@headlessui/react";
 import Modal, { ModalProps } from "./Modal.tsx";
 import Button from "./Button.tsx";
+import Client, { Local } from "../client.ts";
 
 export interface AddBotStatus {
   botName: string;
   status: "success" | "failure" | "creating";
 }
+
+const apiURL = import.meta.env.DEV
+  ? Local
+  : window.location.protocol + "//" + window.location.host;
+
+const client = new Client(apiURL);
 
 const AddBotModal: FC<
   ModalProps & {
@@ -16,57 +23,31 @@ const AddBotModal: FC<
 > = ({ channelID, statusChange, show, onHide }) => {
   const [botName, setBotName] = useState("");
   const [botPrompt, setBotPrompt] = useState("");
-  const apiURL = import.meta.env.DEV
-    ? "http://localhost:4000"
-    : window.location.protocol + "//" + window.location.host;
   const disableButton = !botName || !botPrompt;
 
   const addToChannel = async (botID: string) => {
-    fetch(
-      `${apiURL}/chat/provider/localchat/channels/${channelID}/bots/${botID}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    )
-      .then((resp) => {
-        if (resp.ok) {
-          if (statusChange) statusChange();
-        } else {
-          if (statusChange)
-            statusChange({ botName: botName, status: "failure" });
-        }
+    client.chat
+      .AddBotToProviderChannel("localchat", channelID, botID)
+      .then(() => {
+        if (statusChange) statusChange();
       })
       .catch(() => {
         if (statusChange) statusChange({ botName: botName, status: "failure" });
       });
   };
+
   const createBot = async () => {
     if (statusChange) statusChange({ botName: botName, status: "creating" });
     onHide();
 
-    fetch(`${apiURL}/bots`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    client.bot
+      .Create({
         name: botName,
         prompt: botPrompt,
         llm: "openai",
-      }),
-    })
+      })
       .then((resp) => {
-        if (resp.ok) {
-          resp.json().then((data) => {
-            addToChannel(data.ID);
-          });
-        } else {
-          if (statusChange)
-            statusChange({ botName: botName, status: "failure" });
-        }
+        addToChannel(resp.ID);
       })
       .catch(() => {
         if (statusChange) statusChange({ botName: botName, status: "failure" });
