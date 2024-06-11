@@ -91,7 +91,7 @@ func (svc *Service) ContinueChat(ctx context.Context, req *provider.ChatRequest)
 }
 
 func (svc *Service) Prepopulate(ctx context.Context, req *provider.ChatRequest) (*provider.ContinueChatResponse, error) {
-	req.SystemMsg = req.SystemMsg + string(prepopulatePrompt)
+	req.SystemMsg = req.SystemMsg + fmt.Sprintf(string(prepopulatePrompt), req.Channel.Name)
 	req.Type = provider.TaskTypePrepopulate
 	return svc.continueChat(ctx, req, true)
 }

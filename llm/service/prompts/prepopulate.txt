@@ -1,7 +1,5 @@
 I want you to respond with a heated conversation between the characters described above.
-The topic of the conversation should be unexpected, witty and a bit snarky. It should be based
-on the characters profiles. Each character should respond with at least 4 sentences.
+The topic of the conversation should be based on the name of the channel, which is %s.
+Each character should respond with at least 4 messages.
 Sentences should be no longer than 20 words, to the point and adapted to the character's personality.
-The conversation should be at least 7 messages long.
 The messages should be sent in chronological order.
-Start with an outrageous software engineering opinion from one of the characters
