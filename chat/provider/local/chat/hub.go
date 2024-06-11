@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"encore.app/pkg/fns"
+	"encore.dev/metrics"
 	"encore.dev/rlog"
 )
 
@@ -35,6 +36,8 @@ func NewHub(ctx context.Context, msgHandler messageHandler) *Hub {
 	go hub.run(ctx)
 	return hub
 }
+
+var ActiveClients = metrics.NewGauge[uint64]("active_client", metrics.GaugeConfig{})
 
 type messageHandler func(ctx context.Context, clientMessage *ClientMessage) error
 
@@ -97,9 +100,11 @@ func (h *Hub) run(ctx context.Context) {
 			return
 		case client := <-h.register:
 			h.clients[client] = true
+			ActiveClients.Set(uint64(len(h.clients)))
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
+				ActiveClients.Set(uint64(len(h.clients)))
 				close(client.send)
 			}
 		case message := <-h.broadcast:
