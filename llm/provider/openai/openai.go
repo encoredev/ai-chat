@@ -13,9 +13,12 @@ import (
 	"encore.app/llm/provider"
 	"encore.app/pkg/fns"
 	"encore.dev/config"
+	"encore.dev/pubsub"
 	"encore.dev/rlog"
 	"encore.dev/types/uuid"
 )
+
+var TopicRef = pubsub.TopicRef[pubsub.Publisher[*provider.BotResponse]](provider.LLMMessageTopic)
 
 // This uses Encore's built-in secrets manager, learn more: https://encore.dev/docs/primitives/secrets
 var secrets struct {

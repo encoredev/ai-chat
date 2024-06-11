@@ -13,8 +13,11 @@ import (
 	"encore.app/llm/provider"
 	"encore.app/pkg/fns"
 	"encore.dev/config"
+	"encore.dev/pubsub"
 	"encore.dev/rlog"
 )
+
+var TopicRef = pubsub.TopicRef[pubsub.Publisher[*provider.BotResponse]](provider.LLMMessageTopic)
 
 type Config struct {
 	Model       config.String
