@@ -8,7 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"encore.app/bot"
+	botsvc "encore.app/bot"
 	botdb "encore.app/bot/db"
 	"encore.app/chat/provider"
 	"encore.app/chat/service/db"
@@ -21,19 +21,31 @@ import (
 
 type InstructRequest struct {
 	Bots        []db.BotID
-	Channel     db.ChannelID
 	Instruction string
 }
 
-// InstructBot sends an instruction to a set of bots in a channel. It publishes a task to the LLM provider which
+//encore:api public method=POST path=/chat/provider/:provider/channels/:channelID/instruct
+func (svc *Service) InstructBotInProviderChannel(ctx context.Context, provider string, channelID string, req *InstructRequest) error {
+	q := db.New()
+	c, err := q.GetChannelByProviderID(ctx, chatdb.Stdlib(), db.GetChannelByProviderIDParams{
+		ProviderID: channelID,
+		Provider:   db.Provider(provider),
+	})
+	if err != nil {
+		return errors.Wrap(err, "get channel")
+	}
+	return svc.InstructBotInChannel(ctx, c.ID, req)
+}
+
+// InstructBot sends an instruction to a bot in a channel. It publishes a task to the LLM provider which
 // decides how to handle the instruction. It can be used to e.g. manually trigger a message from a bot.
 // Instructions are not sent to the chat providers
 //
-//encore:api public method=POST path=/chat/instruct
-func (svc *Service) InstructBot(ctx context.Context, req *InstructRequest) error {
+//encore:api public method=POST path=/chat/channels/:channelID/instruct
+func (svc *Service) InstructBotInChannel(ctx context.Context, channelID uuid.UUID, req *InstructRequest) error {
 	q := db.New()
 	_, err := q.InsertMessage(ctx, chatdb.Stdlib(), db.InsertMessageParams{
-		ChannelID: req.Channel,
+		ChannelID: channelID,
 		AuthorID:  db.Admin.ID,
 		Content:   req.Instruction,
 		Timestamp: time.Now().UTC(),
@@ -41,11 +53,14 @@ func (svc *Service) InstructBot(ctx context.Context, req *InstructRequest) error
 	if err != nil {
 		return errors.Wrap(err, "insert message")
 	}
-	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: req.Bots})
+	bots, err := botsvc.List(ctx, &botsvc.ListBotRequest{IDs: req.Bots})
 	if err != nil {
 		return errors.Wrap(err, "get bot")
 	}
-	channel, err := svc.GetChannel(ctx, req.Channel)
+	channel, err := svc.GetChannel(ctx, channelID)
+	if err != nil {
+		return errors.Wrap(err, "get channel")
+	}
 	err = svc.publishLLMTasks(ctx, llmprovider.TaskTypeInstruct, bots.Bots, channel, req.Instruction)
 	return errors.Wrap(err, "publish llm task")
 
@@ -62,7 +77,7 @@ func (svc *Service) ProcessLLMMessage(ctx context.Context, event *llmprovider.Bo
 		return errors.New("provider not found")
 	}
 	botIDs := fns.Map(event.Messages, func(m *llmprovider.BotMessage) uuid.UUID { return m.Bot })
-	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: botIDs})
+	bots, err := botsvc.List(ctx, &botsvc.ListBotRequest{IDs: botIDs})
 	if err != nil {
 		return errors.Wrap(err, "list bots")
 	}
@@ -121,7 +136,7 @@ func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *prov
 	if err != nil {
 		return errors.Wrap(err, "insert channel")
 	}
-	resp, err := bot.List(ctx, &bot.ListBotRequest{})
+	resp, err := botsvc.List(ctx, &botsvc.ListBotRequest{})
 	if err != nil {
 		return errors.Wrap(err, "list bots")
 	}
@@ -171,7 +186,7 @@ func (svc *Service) ProcessProviderMessage(ctx context.Context, msg *provider.Me
 	if len(botIDs) == 0 {
 		return nil
 	}
-	bots, err := bot.List(ctx, &bot.ListBotRequest{IDs: botIDs})
+	bots, err := botsvc.List(ctx, &botsvc.ListBotRequest{IDs: botIDs})
 	if err != nil {
 		return errors.Wrap(err, "list bots")
 	}

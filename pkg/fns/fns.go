@@ -51,10 +51,6 @@ func Map[T, U any](s []T, f func(T) U) []U {
 	return r
 }
 
-func init() {
-	rand.Seed(uint64(time.Now().UnixNano()))
-}
-
 func SelectRandom[T any](slice []T, n int) []T {
 	if len(slice) <= n {
 		return slice

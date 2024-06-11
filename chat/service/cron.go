@@ -25,7 +25,7 @@ var cfg = config.Load[*Config]()
 // This uses Encore's cron feature, learn more: https://encore.dev/docs/primitives/cron-jobs
 var _ = cron.NewJob("initiate-convos", cron.JobConfig{
 	Title:    "Initiate Conversations",
-	Every:    1 * cron.Hour,
+	Every:    24 * cron.Hour,
 	Endpoint: InitiateConversation,
 })
 
@@ -51,9 +51,8 @@ func (svc *Service) InitiateConversation(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "list bots in channel")
 		}
-		err = svc.InstructBot(ctx, &InstructRequest{
+		err = svc.InstructBotInChannel(ctx, channel.ID, &InstructRequest{
 			Bots:        bots,
-			Channel:     channel.ID,
 			Instruction: "Continue a discussion with a character or start a completely random new one",
 		})
 		if err != nil {

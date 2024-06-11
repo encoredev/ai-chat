@@ -112,6 +112,19 @@ func (svc *Service) AddBotToChannel(ctx context.Context, channelID uuid.UUID, bo
 	return nil
 }
 
+//encore:api public method=DELETE path=/chat/provider/:provider/channels/:channelID/bots/:botID
+func (svc *Service) RemoveBotFromProviderChannel(ctx context.Context, provider string, channelID string, botID uuid.UUID) error {
+	q := db.New()
+	c, err := q.GetChannelByProviderID(ctx, chatdb.Stdlib(), db.GetChannelByProviderIDParams{
+		ProviderID: channelID,
+		Provider:   db.Provider(provider),
+	})
+	if err != nil {
+		return errors.Wrap(err, "get channel")
+	}
+	return svc.RemoveBotFromChannel(ctx, c.ID, botID)
+}
+
 // RemoveBotFromChannel removes a bot from a channel. It will trigger a leave event in the chat provider.
 // It will also create a leave task in the LLM service which will be sent to the channel.
 //
