@@ -133,7 +133,6 @@ export namespace bot {
 export namespace chat {
     export interface InstructRequest {
         Bots: db.BotID[]
-        Channel: db.ChannelID
         Instruction: string
     }
 
@@ -165,12 +164,16 @@ export namespace chat {
         }
 
         /**
-         * InstructBot sends an instruction to a set of bots in a channel. It publishes a task to the LLM provider which
+         * InstructBot sends an instruction to a bot in a channel. It publishes a task to the LLM provider which
          * decides how to handle the instruction. It can be used to e.g. manually trigger a message from a bot.
          * Instructions are not sent to the chat providers
          */
-        public async InstructBot(params: InstructRequest): Promise<void> {
-            await this.baseClient.callAPI("POST", `/chat/instruct`, JSON.stringify(params))
+        public async InstructBotInChannel(channelID: string, params: InstructRequest): Promise<void> {
+            await this.baseClient.callAPI("POST", `/chat/channels/${encodeURIComponent(channelID)}/instruct`, JSON.stringify(params))
+        }
+
+        public async InstructBotInProviderChannel(provider: string, channelID: string, params: InstructRequest): Promise<void> {
+            await this.baseClient.callAPI("POST", `/chat/provider/${encodeURIComponent(provider)}/channels/${encodeURIComponent(channelID)}/instruct`, JSON.stringify(params))
         }
 
         /**
@@ -193,6 +196,10 @@ export namespace chat {
          */
         public async RemoveBotFromChannel(channelID: string, botID: string): Promise<void> {
             await this.baseClient.callAPI("DELETE", `/chat/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
+        }
+
+        public async RemoveBotFromProviderChannel(provider: string, channelID: string, botID: string): Promise<void> {
+            await this.baseClient.callAPI("DELETE", `/chat/provider/${encodeURIComponent(provider)}/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
         }
     }
 }
@@ -284,8 +291,6 @@ export namespace db {
         Name: string
         Deleted: sql.NullTime
     }
-
-    export type ChannelID = string
 
     export type Provider = string
 }

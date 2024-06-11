@@ -42,6 +42,13 @@ import {
 import poweredBy from "../assets/powered-by-encore.png";
 import InviteFriendModal from "./InviteFriendModal.tsx";
 import SlideOver from "./SlideOver.tsx";
+import Client, { Local } from "../client.ts";
+
+const apiURL = import.meta.env.DEV
+  ? Local
+  : window.location.protocol + "//" + window.location.host;
+
+const client = new Client(apiURL);
 
 export const Chat = ({
   user,
@@ -67,6 +74,7 @@ export const Chat = ({
   } = useChat();
 
   const [botStatus, setBotStatus] = useState<AddBotStatus | undefined>();
+  const [offlineBots, setOfflineBots] = useState<string[]>([]);
   const hasActiveBots = useMemo(() => {
     // Check if participant has avatar, then it's a bot
     return activeConversation?.participants.some(
@@ -168,6 +176,7 @@ export const Chat = ({
         getUser={getUser}
         botStatus={botStatus}
         activeConversation={activeConversation}
+        offlineBots={offlineBots}
         setUserProfile={(user) => {
           setUserProfile(user);
           setMobileSidebarShow(false);
@@ -190,6 +199,12 @@ export const Chat = ({
         show={userProfile !== undefined}
         user={userProfile}
         onHide={() => setUserProfile(undefined)}
+        removeFromChannel={() => {
+          const id = userProfile!.id.replace(/^b-/, "");
+          client.chat.RemoveBotFromProviderChannel("localchat", channelID, id);
+          setOfflineBots((prev) => [...prev, userProfile!.id]);
+          setUserProfile(undefined);
+        }}
       />
 
       <AddBotModal
@@ -287,7 +302,9 @@ export const Chat = ({
                       <Avatar
                         name={m.senderId}
                         className="cursor-pointer"
-                        status="available"
+                        status={
+                          offlineBots.includes(m.senderId) ? "dnd" : "available"
+                        }
                         src={getUser(m.senderId)?.avatar}
                         onClick={() => {
                           if (isBot(m.senderId))
@@ -339,6 +356,7 @@ const ChatSidebar: FC<{
   botStatus: AddBotStatus | undefined;
   showAddBotModal: () => void;
   showInviteFriendModal: () => void;
+  offlineBots: string[];
 }> = ({
   activeConversation,
   setUserProfile,
@@ -346,6 +364,7 @@ const ChatSidebar: FC<{
   botStatus,
   showAddBotModal,
   showInviteFriendModal,
+  offlineBots,
 }) => {
   const hasActiveBots = useMemo(() => {
     // Check if participant has avatar, then it's a bot
@@ -377,7 +396,10 @@ const ChatSidebar: FC<{
                 if (isBot) setUserProfile(getUser(p.id));
               }}
             >
-              <Avatar status="available" src={getUser(p.id)?.avatar}>
+              <Avatar
+                status={offlineBots.includes(p.id) ? "dnd" : "available"}
+                src={getUser(p.id)?.avatar}
+              >
                 {!isBot && <ProfileCircle user={getUser(p.id)} size="md" />}
               </Avatar>
               <div>
