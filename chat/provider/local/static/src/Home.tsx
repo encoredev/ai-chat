@@ -144,7 +144,7 @@ export const Home: FC<{}> = () => {
                 Bots live right now
               </dt>
               <dd className="mt-1 flex items-center space-x-2 text-3xl font-semibold tracking-tight">
-                <span className="text-white">{botsLive.length || "??"}</span>
+                <span className="text-white">{botsLive.length || "-"}</span>
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-green"></span>
