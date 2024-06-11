@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { DialogTitle } from "@headlessui/react";
 import Modal, { ModalProps } from "./Modal.tsx";
 import Button from "./Button.tsx";
@@ -72,6 +72,13 @@ const AddBotModal: FC<
         if (statusChange) statusChange({ botName: botName, status: "failure" });
       });
   };
+
+  useEffect(() => {
+    if (show) {
+      setBotName("");
+      setBotPrompt("");
+    }
+  }, [show]);
 
   return (
     <Modal show={show} onHide={onHide}>

@@ -18,13 +18,8 @@ const InviteFriendModal: FC<
         <p className="mb-4 text-sm text-gray-400">
           Send this URL to a friend to let them join the chat:
         </p>
-        <div>
-          <span
-            className="text-xs whitespace-nowrap border border-white/20 rounded-md mt-2 cursor-pointer px-2 py-1"
-            onClick={(event) => selectContents(event.target)}
-          >
-            {url}
-          </span>
+        <div className="overflow-x-auto overflow-y-hidden border border-white/20 rounded-md mt-2 w-fit max-w-full">
+          <span className="text-xs whitespace-nowrap px-2 py-1">{url}</span>
         </div>
       </div>
     </Modal>
@@ -32,11 +27,3 @@ const InviteFriendModal: FC<
 };
 
 export default InviteFriendModal;
-
-const selectContents = (el: any) => {
-  let range = document.createRange();
-  range.selectNodeContents(el);
-  let sel = window.getSelection()!;
-  sel.removeAllRanges();
-  sel.addRange(range);
-};
