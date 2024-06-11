@@ -16,7 +16,7 @@ This application is your bridge between popular chat platforms like Discord and 
 ### Prerequisites
 
 * **Encore:** You'll need Encore to get started. Follow the installation instructions at [https://encore.dev/docs/install](https://encore.dev/docs/install).
-* **OpenAI API Key (Optional):** If you want to use OpenAI's models, grab an API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+* **OpenAI API Key:** To use OpenAI's models, grab an API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 
 ### Quick Start
 
@@ -59,7 +59,7 @@ Once the deployment is complete, click Overview and copy the URL to see your bot
 
 ## Under the Hood
 
-AI Chat is a microservices-based application, with each service handling a specific aspect of the chatbot ecosystem. 
+AI Chat is a microservices-based application, with each service handling a specific aspect of the chatbot ecosystem.
 The services uses a combination of Encore APIs, pub/sub messaging, and WebSocket communication to orchestrate the flow of messages between chat platforms and LLM providers.
 You can explore the services and their interactions in the [Local Dashboard](http://localhost:9400/).
 <img alt="System design diagram" style="width:100%; max-width: 768px" src="docs/assets/system-design.png"/>
@@ -75,7 +75,7 @@ You can explore the services and their interactions in the [Local Dashboard](htt
 * **OpenAI Service:** Interfaces with OpenAI's API for chat completions and image generation.
 * **Gemini Service:** Integrates with Google Gemini for even more chat completion options.
 
-## Message Flow
+### Message Flow
 
 1. A user sends a message in a connected chat channel
 2. The corresponding chat integration (Discord, Slack, or local) receives the message
@@ -88,69 +88,18 @@ You can explore the services and their interactions in the [Local Dashboard](htt
 7. The LLM service parses the responses and relays them back to the chat service
 8. The chat service delivers the bot's witty (or not-so-witty) responses to the appropriate chat integration
 
-## Local Development (Using Ngrok)
-
-**If you're developing locally and want to connect to external services like Slack, you'll need to use a service like ngrok to create a secure tunnel to your local development server.**
-
-### 1. Create a Ngrok Account
-
-* Visit [https://ngrok.com/](https://ngrok.com/) and create an account.
-
-### 2. Add Tunnel Authtoken
-
-* Log in to your ngrok account and click on `Authtokens`.
-* Click `Add Tunnel Authtoken`.
-* Copy the token and add it as an Encore secret:
-```bash
-encore secret set NGrokToken --type local
-```
-
-### 3. Create a Custom Ngrok Domain
-
-* Navigate to `Domains` -> `New Domain` in your ngrok dashboard.
-* Create a memorable domain name.
-* Copy the domain name and add it as another Encore secret:
-```bash
-encore secret set NGrokDomain --type local
-```
-
-### 4. Start the Encore App
-
-* Start your Encore app:
-```bash
-encore run
-```
-
-### 5. Update Your App Manifest (If Needed)
-
-* For some integrations (like Slack), you'll need to update your app manifest to use your ngrok domain.
-
-## Integrating Your Chat Platforms
-
-### Local Chat Service
-
-* A simple web interface for testing and local development using WebSockets for real-time communication. Your bot's personal practice room.
-
-### Slack Service
-
-* Utilizes the `slack-go` library ([github.com/slack-go/slack](github.com/slack-go/slack)) to interact with the Slack API.
-* Requires ngrok for local testing.
-
-### Discord Chat Service
-
-* Employs the `discord-go` library ([github.com/bwmarrin/discordgo](github.com/bwmarrin/discordgo)) to connect to the Discord API and manage real-time communication through WebSockets.
-
 ## Integrating Your LLMs
+LLMs are the heart and soul of your bots, providing the intelligence and personality that make them shine. This application is built to make it easy to integrate with popular LLM providers, and it comes pre-configured to work with OpenAI and Google Gemini.
 
-### OpenAI Service
+* **OpenAI:** Leverages the `openai` library ([github.com/sashabaranov/go-openai](github.com/sashabaranov/go-openai)) to tap into OpenAI's API for chat completions and image generation.
+* **Gemini:** Connects to Google Gemini using the vertexai` library ([cloud.google.com/go/vertexai/genai](https://cloud.google.com/go/vertexai/genai)) for generating chat completions.
 
-* Leverages the `openai` library ([github.com/sashabaranov/go-openai](github.com/sashabaranov/go-openai)) to tap into OpenAI's API for chat completions and image generation.
+### Adding OpenAI Credentials
+To enable OpenAI as an LLM provider, you'll need to set your OpenAI API key as an Encore secret. Here's how you can do it:
 
-### Gemini Service
-
-* Connects to Google Gemini using the vertexai` library ([cloud.google.com/go/vertexai/genai](https://cloud.google.com/go/vertexai/genai)) for generating chat completions.
 
 ### Adding Gemini Credentials
+To enable Gemini as an LLM provider, you'll need to set your Google Cloud credentials as an Encore secret. Here's how you can do it:
 
 1. **Create a GCP Service Account:**
 * Head over to the [Google Cloud Console](https://console.cloud.google.com/iam-admin/serviceaccounts).
@@ -168,17 +117,20 @@ encore run
 encore secret set --type dev,local,pr GeminiJSONCredentials < <downloaded json>.json
 ```
 
-4. **Start the Encore App:**
-```bash
-encore run
-```
+4. **Generate Bots**
+   All done! You can now generate bots with Gemini as the LLM, just call the `bot.Create` endpoint with `gemini` as the provider.
 
-5. **Create a Bot:**
-* In the Encore Local dev dash (http://localhost:9400/), navigate to `API Explorer` and select the `bot.Create` endpoint.
-* Give your bot a name, an opening prompt, and enter `gemini` as the LLM.
+## Integrating your Chat Platforms
+This application supports the following intefaces for your bots:
+* **Local Chat**: A simple web interface for testing and local development using WebSockets for real-time communication. Your bot's personal practice room.
+* **Slack**: Utilizes the `slack-go` library ([github.com/slack-go/slack](github.com/slack-go/slack)) to interact with the Slack API. Requires ngrok for local testing.
+* **Discord**: Employs the `discord-go` library ([github.com/bwmarrin/discordgo](github.com/bwmarrin/discordgo)) to connect to the Discord API.
 
-## Integrating Chat Platforms
-### Slack Bot Integration
+### Using the Local Chat
+* The local chat UI is served from the root of the API server (locally at `http://localhost:4000/`).
+* You can disable the local chat service by setting the `Enabled` property to `false` in the `chat/provider/local/config.cue` file.
+
+### Create a Slack Bot
 
 1. **Create a Slack App:**
 * Visit [https://api.slack.com/apps](https://api.slack.com/apps) and click `Create New App`.
@@ -204,30 +156,7 @@ encore run
 encore secret set SlackToken --type local
 ```
 
-5. **Start the Encore App:**
-```bash
-encore run
-```
-
-6. **Create a Bot Profile:**
-* In the [Encore Local dev dash](http://localhost:9400/), open `API Explorer` and select the `bot.Create` endpoint.
-* Give your bot a name, an engaging prompt, and enter `openai` as the LLM.
-* Copy the bot ID.
-
-7. **Find a Slack Channel ID:**
-* In the [dev dash](http://localhost:9400/), go to `API Explorer` and select `chat.ListChannels`.
-* Click `Call API`. Copy the `id` of the channel you want your bot to join.
-
-8. **Add the Bot to the Slack Channel:**
-* Select the `chat.AddBotToChannel` endpoint.
-* Enter the bot ID and the channel ID.
-* Click `Call API`.
-
-9. **Verify Your Bot:** Check your Slack channel; your bot should now be present and ready to chat!
-
-<img alt="slack-message.gif" style="width:100%; max-width: 512px" src="docs/assets/slack-message.gif"/>
-
-### Discord Bot Integration
+### Create a Discord Bot
 
 1. **Create a Discord Bot:**
 * Go to [Developer Portal Applications](https://discord.com/developers/applications) and click `New Application`.
@@ -263,28 +192,62 @@ encore secret set DiscordToken --type local
 6. **Invite the Bot to a Channel (Optional):**
 * If you want your bot to join private conversations, invite it to specific channels.
 
-7. **Start the Encore App:**
-```bash
-encore run
-```
+### Add bots to chat channels
+1. **Open the Service Catalog**
+* Visit the [Local Dashboard](http://localhost:9400/) or the [Cloud Dashboard](https://app.encore.dev).
+* Click on your service
+* Click on `Service Catalog`
 
-8. **Create a Bot:**
-* In the [Encore Local dev dash](http://localhost:9400/), go to `API Explorer` and select the `bot.Create` endpoint.
-* Provide a name, an opening prompt, and select `openai` as the LLM.
-* Copy the bot ID.
-
-9. **Find a Discord Channel ID:**
-* In the [dev dash](http://localhost:9400/), open `API Explorer` and select the `chat.ListChannels` endpoint.
+2. **Create a Bot Profile:**
+* Select the `bot.Create` endpoint.
+* Give your bot a name, an engaging prompt, and enter `openai` as the LLM.
 * Click `Call API`.
-* Find the channel you want your bot to join and copy its `id`.
+* Copy the bot ID in the response.
 
-10. **Add the Bot to the Discord Channel:**
+2. **Find a Chat Channel ID:**
+* Select the `chat.ListChannels`.
+* Click `Call API`.
+* Copy the `id` of the channel you want your bot to join.
+
+3. **Add the Bot to a Channel:**
 * Select the `chat.AddBotToChannel` endpoint.
 * Enter the bot ID and the channel ID.
 * Click `Call API`.
 
-11. **Verify Your Bot:** Your bot should now be a part of your chosen Discord channel!
+4. **Verify Your Bot:**
+   Check your Slack/Discord channel; your bot should now be present and ready to chat!
 
+<img alt="slack-message.gif" style="width:100%; max-width: 512px" src="docs/assets/slack-message.gif"/>
 <img alt="discord-message.gif" style="width:100%; max-width: 386px" src="docs/assets/discord-message.gif"/>
+
+## Local Development (Using Ngrok)
+
+**If you're developing locally and want to connect to external services like Slack, you'll need to use a service like ngrok to create a secure tunnel to your local development server.**
+
+1. **Create a Ngrok Account**
+
+* Visit [https://ngrok.com/](https://ngrok.com/) and create an account.
+
+2. **Add Tunnel Authtoken**
+
+* Log in to your ngrok account and click on `Authtokens`.
+* Click `Add Tunnel Authtoken`.
+* Copy the token and add it as an Encore secret:
+```bash
+encore secret set NGrokToken --type local
+```
+
+3. **Create a Custom Ngrok Domain**
+
+* Navigate to `Domains` -> `New Domain` in your ngrok dashboard.
+* Create a memorable domain name.
+* Copy the domain name and add it as another Encore secret:
+```bash
+encore secret set NGrokDomain --type local
+```
+
+4. **Update Your Apps (If Needed)**
+
+* For some integrations (like Slack), you'll need to update the Slack app to use your ngrok domain.
 
 You've successfully integrated your chat platforms and LLMs, ready to unleash your AI-powered conversationalists! Now go forth and create bots that will make people laugh, think, or maybe even question the nature of reality (but no pressure!).

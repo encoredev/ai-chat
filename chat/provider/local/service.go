@@ -78,8 +78,9 @@ func (s *Service) ServeHTML(w http.ResponseWriter, r *http.Request) {
 }
 
 type BotInfo struct {
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Avatar string    `json:"avatar"`
 }
 
 type ListBotResponse struct {
@@ -95,6 +96,7 @@ func (s *Service) ListBots(ctx context.Context) (*ListBotResponse, error) {
 	return &ListBotResponse{
 		Bots: fns.Map(bots.Bots, func(bot *botdb.Bot) BotInfo {
 			return BotInfo{
+				ID:     bot.ID,
 				Name:   bot.Name,
 				Avatar: bot.GetAvatarURL(),
 			}
