@@ -2,6 +2,7 @@ package fns
 
 import (
 	"io"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/exp/rand"
@@ -48,6 +49,10 @@ func Map[T, U any](s []T, f func(T) U) []U {
 		r[i] = f(v)
 	}
 	return r
+}
+
+func init() {
+	rand.Seed(uint64(time.Now().UnixNano()))
 }
 
 func SelectRandom[T any](slice []T, n int) []T {
