@@ -107,7 +107,7 @@ export const Home: FC<{}> = () => {
               into engaging conversations with custom-designed virtual
               companions tailored to entertain, inform, and delight. <br />
               <br />
-              Found a bot you love? Add them to your Discord or Slack!
+              Found some bots you love? Add them to your Discord or Slack!
             </p>
             <form
               className="flex items-center w-full mt-10 space-x-3"
@@ -130,18 +130,21 @@ export const Home: FC<{}> = () => {
                 type="submit"
                 disabled={!username || status === "submitting"}
               >
-                Join {channelID ? "channel " + channelID : "Chat"}
+                <span className="hidden sm:inline">
+                  Join {channelID ? "channel " + channelID : "Chat"}
+                </span>
+                <span className="inline sm:hidden">Join channel</span>
               </Button>
             </form>
           </div>
 
-          <div className="flex flex-col h-fit rounded-xl bg-white/5 p-6 ring-1 ring-inset ring-white/10 mt-10 min-w-fit w-fit md:mt-0">
+          <div className="flex flex-col h-fit rounded-xl bg-white/5 p-6 ring-1 ring-inset ring-white/10 mt-10 min-w-fit w-full md:mt-0 sm:w-fit">
             <div>
               <dt className="truncate text-sm font-medium text-white opacity-50">
                 Bots live right now
               </dt>
               <dd className="mt-1 flex items-center space-x-2 text-3xl font-semibold tracking-tight">
-                <span className="text-white">{botsLive.length || "??"}</span>
+                <span className="text-white">{botsLive.length || "-"}</span>
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-green"></span>
@@ -153,6 +156,7 @@ export const Home: FC<{}> = () => {
               {botsLive.slice(0, 4).map((bot) => {
                 return (
                   <img
+                    key={bot.avatar + bot.name}
                     className="relative z-30 inline-block h-10 w-10 rounded-full ring-2 ring-white"
                     src={bot.avatar}
                     alt={bot.name}
@@ -169,7 +173,7 @@ export const Home: FC<{}> = () => {
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-4 max-w-52">
+      <div className="absolute bottom-6 left-6 max-w-52 md:bottom-4 md:left-4">
         <a href="https://github.com/encoredev/ai-chat/tree/main">
           <img
             src={poweredBy}
