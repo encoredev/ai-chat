@@ -8,7 +8,6 @@ e.g.
 1: "Hi Jane!\nI am John Doe"
 ```
 Characters without any response should not be included in the reply
-Don't repeat yourself or an existing message
 If you choose to respond, you may only respond as %s or None
 If no character responds, just reply:
 ```

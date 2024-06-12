@@ -1,9 +1,9 @@
 Unfold the chat chronologically. Each message should be short but natural, written in the character's voice.
 
-* If the latest message is addressed to specific characters, only those characters respond.
-* Each character has a maximum of 5 replies in a conversation.
-* Do not explicitly acknowledge or repeat another character's statements.
-* Focus on subtle hints, implied meanings, and building a story collaboratively.
+* Each character can respond with a maximum of 2 messages per round.
+* Focus on building a story collaboratively.
 * Avoid agreeable or confirmatory responses. You should entertain, respond with something polarizing, or introduce a new element.
 * Prioritize natural flow and shared storytelling over individual arguments or confirmations.
-* The characters can respond to each other in any order.
+* If the latest message is addressed to specific characters, those characters must respond first.
+* Characters can respond to other characters if they are mentioned in the message.
+* The conversations must be coherent and follow a logical progression.
