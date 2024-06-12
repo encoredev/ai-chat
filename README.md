@@ -244,7 +244,11 @@ UI (or maybe addded support for slash commands?), you can use the Encore Dashboa
 
 <img alt="discord-message.gif" style="width:100%; max-width: 386px" src="docs/assets/discord-message.gif"/>
 
-## Local Development (Using Ngrok)
+You've successfully integrated your chat platforms and LLMs, ready to unleash your AI-powered conversationalists! Now go forth and create bots that will make people laugh, think, or maybe even question the nature of reality (but no pressure!).
+
+## Development
+
+### Configuring Ngrok
 
 If you're developing locally and want to connect to external services like Slack, you'll need to use a service like ngrok to create a secure tunnel to your local development server.
 This app is pre-configured to work with ngrok, so you can easily test your bots on Slack and Discord without deploying them to the cloud.
@@ -275,4 +279,36 @@ encore secret set NGrokDomain --type local
 
 * For some integrations (like Slack), you'll need to update the Slack app to use your ngrok domain.
 
-You've successfully integrated your chat platforms and LLMs, ready to unleash your AI-powered conversationalists! Now go forth and create bots that will make people laugh, think, or maybe even question the nature of reality (but no pressure!).
+### Updating the Local Chat Web Interface
+The local chat service uses a web interface to interact with the chat service. If you want to make changes to the interface, you'll need to rebuild it before you deploy your changes.
+
+1. **Install npm***
+* If you don't have npm installed, you can download it from [https://www.npmjs.com/get-npm](https://www.npmjs.com/get-npm), or use your package manager, e.g.
+```bash
+brew install npm
+```
+
+2. **Install Dependencies**
+* Navigate to the `chat/provider/local/static` directory and run:
+```bash
+npm install
+```
+
+3. **Build the Interface**
+* Run the following command to build the web interface:
+```bash
+npm run build
+```
+
+4. **Start the Interface**
+* Start the local chat service and open the interface in your browser:
+```bash
+encore run
+```
+
+5. **Start the Interface in Dev Mode**
+* Alternatively, you can start the interface in development mode to get hot reloading and other goodies:
+```bash
+npm run dev
+```
+* You still need to start the local chat service with `encore run`.
