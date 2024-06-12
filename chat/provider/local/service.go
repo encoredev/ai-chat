@@ -204,6 +204,7 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afte
 				UserId:         userID,
 				ConversationId: channelID,
 				Content:        msg.Content,
+				Timestamp:      msg.Timestamp,
 			})
 		}
 		return nil
@@ -269,6 +270,7 @@ func (s *Service) SendMessage(ctx context.Context, channelID string, req *provid
 		UserId:         "b-" + req.Bot.ID.String(),
 		ConversationId: channelID,
 		Content:        req.Content,
+		Timestamp:      time.Now(),
 	})
 	return nil
 }

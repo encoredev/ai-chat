@@ -41,8 +41,8 @@ type ClientMessage struct {
 		ID            string `json:"id"`
 		LastMessageID string `json:"lastMessageId"`
 	}
-
-	Client *Client `json:"-"`
+	Timestamp time.Time `json:"timestamp"`
+	Client    *Client   `json:"-"`
 }
 
 // Client is a middleman between the websocket connection and the svc.

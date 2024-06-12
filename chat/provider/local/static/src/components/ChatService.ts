@@ -69,6 +69,7 @@ interface ServiceMessage {
   username: string;
   content: string;
   avatar: string;
+  timestamp: Date;
 }
 
 export class ExampleChatService implements IChatService {
@@ -158,6 +159,7 @@ export class ExampleChatService implements IChatService {
       } else if (msg.type === "message") {
         let message = new ChatMessage<MessageContentType.TextPlain>({
           id: msg.id,
+          createdTime: msg.timestamp,
           // @ts-ignore
           content: msg.content,
           contentType: MessageContentType.TextPlain,
@@ -216,6 +218,7 @@ export class ExampleChatService implements IChatService {
           content: msg.content?.toString(),
           userId: msg.senderId,
           conversationId: conversationId,
+          timestamp: msg.createdTime,
         }),
       );
     }
