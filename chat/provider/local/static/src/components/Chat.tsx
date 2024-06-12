@@ -514,7 +514,7 @@ const ChatSidebar: FC<{
           </div>
         </a>
 
-        <a href="https://github.com/encoredev/ai-chat" target="_blank">
+        <a href="https://github.com/encoredev/examples/tree/main/ai-chat" target="_blank">
           <div className="flex items-center text-white text-sm space-x-2 mb-4 opacity-70 cursor-pointer hover:opacity-100">
             <GithubLogo className="w-6 h-6" />
             <p>Source code</p>
