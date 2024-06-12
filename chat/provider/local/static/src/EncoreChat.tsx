@@ -36,7 +36,7 @@ export const EncoreChat = () => {
   });
 
   return (
-    <div className="flex w-full h-screen">
+    <div className="flex w-full h-dvh">
       <ChatProvider
         serviceFactory={serviceFactory}
         storage={storage}
