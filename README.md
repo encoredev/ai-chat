@@ -18,7 +18,7 @@ This application is your bridge between popular chat platforms like Discord and 
 * **Encore:** You'll need Encore to get started. Follow the installation instructions at [https://encore.dev/docs/install](https://encore.dev/docs/install).
 * **OpenAI API Key:** To use OpenAI's models, grab an API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 
-### Quick Start
+### Run Locally
 
 1. **Create Your Encore App:**
 ```bash
@@ -103,7 +103,7 @@ To enable OpenAI as an LLM provider, you'll need to set your OpenAI API key as a
 encore secret set OpenAIKey --type dev,local,pr
 ```
 
-4. **Generate Bots:**
+3. **Generate Bots:**
 All done! You can now generate bots with OpenAI as the LLM, just call the `bot.Create` endpoint with `openai` as the provider.
 
 ### Adding Gemini Credentials
@@ -139,8 +139,10 @@ The local chat service is enabled by default, but Slack and Discord require addi
 
 ### Configuring Slack
 To be able to use Slack as a chat platform, you'll need to create a Slack app and add it to your workspace. Here's how you can do it:
+1. **Create the Encore App:**
+* Complete the steps in the [Getting Started](#getting-started) section to create your Encore app.
 
-1. **Create a Slack App:**
+2. **Create a Slack App:**
 * Visit [https://api.slack.com/apps](https://api.slack.com/apps) and click `Create New App`.
 * Choose `From an app manifest` and click `Next`.
 * Pick the workspace for your bot and click `Next`.
@@ -148,30 +150,36 @@ To be able to use Slack as a chat platform, you'll need to create a Slack app an
 * Replace the `<bot-domain>` placeholder with either `<env-name>-<app-name>-<slug>.encr.app` (e.g. `staging-my-chatbot-tur3.encr.app`) or the ngrok domain you configured for local development
 * Click `Next` and then `Create`.
 
-2. **Activate Bot Events:**
+3. **Activate Bot Events:**
 * On the bot settings page, click `Event Subscriptions`.
 * Start the Encore app.
 * If the `Request URL` is yellow, click on `Retry`.
 
-3. **Install the App to Your Workspace:**
+4. **Install the App to Your Workspace:**
 * On the settings page, click `OAuth & Permissions` and then `Install to Workspace`.
 * Select a channel for your bot and click `Allow`.
 
-4. **Add the Slack Bot Token:**
+5. **Add the Slack Bot Token:**
 * Copy the `Bot User OAuth Token` from the `OAuth & Permissions` page.
 * Add it as an Encore secret:
 ```bash
 encore secret set SlackToken --type local
 ```
 
+6. **Create Your Chat Bots**
+* Proceed to the [Create Your Chat Bots](#create-your-chat-bots) section to add bots to your channels.
+
 ### Configuring Discord
 To be able to use Discord as a chat platform, you'll need to create a Discord bot and add it to your server. Here's how you can do it:
 
-1. **Create a Discord Bot:**
+1. **Create the Encore App:**
+* Complete the steps in the [Getting Started](#getting-started) section to create your Encore app.
+
+2. **Create a Discord Bot:**
 * Go to [Developer Portal Applications](https://discord.com/developers/applications) and click `New Application`.
 * Give your Discord app a name and click `Create`.
 
-2. **Configure Install Settings:**
+3. **Configure Install Settings:**
 * Click `Installation`.
 * Select `Discord Provided Link` in `Install Link`.
 * Under `Default Install Settings`, add the `bot` scope and these permissions:
@@ -181,27 +189,30 @@ To be able to use Discord as a chat platform, you'll need to create a Discord bo
 * Read Messages/View Channels
 * Send Messages
 
-3. **Grant Privileged Gateway Intents:**
+4. **Grant Privileged Gateway Intents:**
 * Click `Bot` and then `Privileged Gateway Intents`.
 * Enable these intents:
 * Server Members Intent
 * Message Content Intent
 
-4. **Copy the Bot Token:**
+5. **Copy the Bot Token:**
 * On the `Bot` page, click `Reset Token`.
 * Copy the token and add it as an Encore secret:
 ```bash
 encore secret set DiscordToken --type local
 ```
 
-5. **Install the Bot:**
+6. **Install the Bot:**
 * Copy the Install Link and paste it into your browser.
 * Grant your bot access to a server.
 
-6. **Invite the Bot to a Channel (Optional):**
+7. **Invite the Bot to a Channel (Optional):**
 * If you want your bot to join private conversations, invite it to specific channels.
 
-### Add Bots to Chat Channels
+8. **Create Your Chat Bots**
+* Proceed to the [Create Your Chat Bots](#create-your-chat-bots) section to add bots to your channels.
+
+### Create Your Chat Bots
 The Slack and Discord integrations does not come with a custom-made UI for adding bots to channels. Until you've built your own
 UI (or maybe addded support for slash commands?), you can use the Encore Dashboards to add bots to channels:
 
