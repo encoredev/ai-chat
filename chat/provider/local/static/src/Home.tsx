@@ -21,7 +21,7 @@ export const Home: FC<{}> = () => {
   const [botsLive, setBotsLive] = useState<local.BotInfo[]>([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const channelID = searchParams.get("channel");
+  const [channelID, setChannelID] = useState(searchParams.get("channel") || "");
 
   async function joinChat() {
     setIsSubmitting(true);
@@ -29,7 +29,7 @@ export const Home: FC<{}> = () => {
       pathname: "/chat",
       search: createSearchParams({
         name: username,
-        channel: channelID || humanId(),
+        channel: channelID || humanId({adjectiveCount:0, capitalize:false, separator:"-"}),
       }).toString(),
     });
   }
@@ -102,37 +102,50 @@ export const Home: FC<{}> = () => {
               Found some bots you love? Add them to your Discord or Slack!
             </p>
             <form
-              className="flex items-center w-full mt-10 space-x-3"
+              className="flex flex-col space-y-3 items-center w-full mt-10 columns-1"
               onSubmit={(event) => {
                 event.preventDefault();
                 joinChat();
               }}
             >
-              <input
-                type="text"
-                placeholder="Your name"
-                className="max-w-72 text-xl block w-full rounded-md border-gray-500 bg-gray-800 focus:ring-0 focus:border-gray-500"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-
-              <Button
-                mode="light"
-                size="lg"
-                type="submit"
-                disabled={!username || isSubmitting}
+              <div>
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  className="max-w-72 text-xl block w-full rounded-md border-gray-500 bg-gray-800 focus:ring-0 focus:border-gray-500"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Channel (optional)"
+                  className="max-w-72 text-xl block rounded-md border-gray-500 bg-gray-800 focus:ring-0 focus:border-gray-500"
+                  value={channelID}
+                  onChange={(e) => setChannelID(e.target.value)}
+                />
+              </div>
+              <div>
+                <Button
+                  mode="light"
+                  size="lg"
+                  type="submit"
+                  disabled={!username || isSubmitting}
               >
                 <span className="hidden sm:inline">
-                  Join {channelID ? "channel " + channelID : "Chat"}
+                  Join Chat
                 </span>
                 <span className="inline sm:hidden">
-                  Join {channelID ? "Channel" : "Chat"}
+                  Join Chat
                 </span>
               </Button>
+              </div>
             </form>
           </div>
 
-          <div className="flex flex-col h-fit rounded-xl bg-white/5 p-6 ring-1 ring-inset ring-white/10 mt-10 min-w-fit w-full md:mt-0 sm:w-fit">
+          <div
+            className="flex flex-col h-fit rounded-xl bg-white/5 p-6 ring-1 ring-inset ring-white/10 mt-10 min-w-fit w-full md:mt-0 sm:w-fit">
             <div>
               <dt className="truncate text-sm font-medium text-white opacity-50">
                 Bots live right now
