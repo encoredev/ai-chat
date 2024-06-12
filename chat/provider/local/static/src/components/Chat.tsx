@@ -443,6 +443,22 @@ const ChatSidebar: FC<{
           </div>
         )}
 
+        {botStatus?.status === "inviting" && (
+          <div className="flex space-x-2 items-center p-4 py-3">
+            <Avatar status="eager" size="md">
+              <div
+                className={`
+                  flex items-center justify-center rounded-full bg-gray-500 relative font-semibold
+                  h-[40px] w-[40px] animate-pulse
+                `}
+              >
+                <Robot size={30} className="text-white" />
+              </div>
+            </Avatar>
+            <div className="text-white">{botStatus?.botName} joining</div>
+          </div>
+        )}
+
         {botStatus?.status === "failure" && (
           <div className="flex space-x-2 items-center p-4 py-3">
             <Avatar status="dnd" size="md">

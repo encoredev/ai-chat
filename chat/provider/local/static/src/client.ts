@@ -32,8 +32,8 @@ export function PreviewEnv(pr: number | string): BaseURL {
 export default class Client {
     public readonly bot: bot.ServiceClient
     public readonly chat: chat.ServiceClient
-    public readonly discord: discord.ServiceClient
     public readonly local: local.ServiceClient
+    public readonly slack: slack.ServiceClient
 
 
     /**
@@ -46,8 +46,8 @@ export default class Client {
         const base = new BaseClient(target, options ?? {})
         this.bot = new bot.ServiceClient(base)
         this.chat = new chat.ServiceClient(base)
-        this.discord = new discord.ServiceClient(base)
         this.local = new local.ServiceClient(base)
+        this.slack = new slack.ServiceClient(base)
     }
 }
 
@@ -159,6 +159,9 @@ export namespace chat {
             await this.baseClient.callAPI("POST", `/chat/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
         }
 
+        /**
+         * AddBotToProviderChannel looks up the uuid of the channel by provider ID and calls AddBotToChannel.
+         */
         public async AddBotToProviderChannel(provider: string, channelID: string, botID: string): Promise<void> {
             await this.baseClient.callAPI("POST", `/chat/provider/${encodeURIComponent(provider)}/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
         }
@@ -172,6 +175,9 @@ export namespace chat {
             await this.baseClient.callAPI("POST", `/chat/channels/${encodeURIComponent(channelID)}/instruct`, JSON.stringify(params))
         }
 
+        /**
+         * InstructBotInProviderChannel looks up a channel by provider and channelID and calls InstructBotInChannel.
+         */
         public async InstructBotInProviderChannel(provider: string, channelID: string, params: InstructRequest): Promise<void> {
             await this.baseClient.callAPI("POST", `/chat/provider/${encodeURIComponent(provider)}/channels/${encodeURIComponent(channelID)}/instruct`, JSON.stringify(params))
         }
@@ -198,45 +204,18 @@ export namespace chat {
             await this.baseClient.callAPI("DELETE", `/chat/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
         }
 
+        /**
+         * RemoveBotFromProviderChannel looks up the uuid of the channel by provider ID and calls RemoveBotFromChannel.
+         */
         public async RemoveBotFromProviderChannel(provider: string, channelID: string, botID: string): Promise<void> {
             await this.baseClient.callAPI("DELETE", `/chat/provider/${encodeURIComponent(provider)}/channels/${encodeURIComponent(channelID)}/bots/${encodeURIComponent(botID)}`)
         }
     }
 }
 
-export namespace discord {
-    export interface DiscordAuthRequest {
-        code: string
-        "guild_id": string
-        permissions: number
-    }
-
-    export class ServiceClient {
-        private baseClient: BaseClient
-
-        constructor(baseClient: BaseClient) {
-            this.baseClient = baseClient
-        }
-
-        /**
-         * AuthURL is a public API which can be used as a forward URL for Discord OAuth. It's not implemented but
-         * kept here as an example of how to integrate oauth with Discord.
-         */
-        public async AuthURL(params: DiscordAuthRequest): Promise<void> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                code:        params.code,
-                "guild_id":  params["guild_id"],
-                permissions: String(params.permissions),
-            })
-
-            await this.baseClient.callAPI("GET", `/discord/oauth`, undefined, {query})
-        }
-    }
-}
-
 export namespace local {
     export interface BotInfo {
+        id: string
         name: string
         avatar: string
     }
@@ -252,22 +231,60 @@ export namespace local {
             this.baseClient = baseClient
         }
 
-        public async JoinChannel(channelID: string, params: db.Bot): Promise<void> {
-            await this.baseClient.callAPI("POST", `/localchat/channels/${encodeURIComponent(channelID)}/join`, JSON.stringify(params))
-        }
-
+        /**
+         * ListBots returns a list of all available bots.
+         */
         public async ListBots(): Promise<ListBotResponse> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callAPI("GET", `/localchat/bots`)
             return await resp.json() as ListBotResponse
         }
 
+        /**
+         * ServeHTML serves the static HTML files for the chat provider.
+         */
         public async ServeHTML(method: string, fallback: string[], body?: BodyInit, options?: CallParameters): Promise<Response> {
             return this.baseClient.callAPI(method, `/${fallback.map(encodeURIComponent).join("/")}`, body, options)
         }
 
+        /**
+         * Subscribe is a websocket endpoint for clients to subscribe to chat messages.
+         */
         public async Subscribe(method: string, body?: BodyInit, options?: CallParameters): Promise<Response> {
             return this.baseClient.callAPI(method, `/localchat/subscribe`, body, options)
+        }
+    }
+}
+
+export namespace slack {
+    export interface ChallengeResponse {
+        challenge: string
+    }
+
+    export interface SlackEvent {
+        token: string
+        challenge: string
+        type: string
+        event: JSONValue
+    }
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+        }
+
+        /**
+         * SlackEventHandler handles incoming slack messages and publishes them to the message topic.
+         * The webhook URL must be set in the slack app configuration.
+         * To test it locally, you can use the ngrok integration in the proxy package which automatically spins up
+         * a tunnel to your local machine. Learn more: https://ngrok.com/
+         */
+        public async SlackEventHandler(params: SlackEvent): Promise<ChallengeResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callAPI("POST", `/slack/message`, JSON.stringify(params))
+            return await resp.json() as ChallengeResponse
         }
     }
 }
@@ -310,6 +327,8 @@ export namespace sql {
     }
 }
 
+// JSONValue represents an arbitrary JSON value.
+export type JSONValue = string | number | boolean | null | JSONValue[] | {[key: string]: JSONValue}
 
 
 function encodeQuery(parts: Record<string, string | string[]>): string {

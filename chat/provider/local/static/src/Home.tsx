@@ -7,12 +7,7 @@ import { FC, useEffect, useState } from "react";
 import { humanId } from "human-id";
 import poweredBy from "./assets/powered-by-encore.png";
 import Button from "./components/Button";
-import Client, { Local } from "./client";
-
-interface Bot {
-  name: string;
-  avatar: string;
-}
+import Client, { Local, local } from "./client";
 
 const apiURL = import.meta.env.DEV
   ? Local
@@ -23,7 +18,7 @@ const client = new Client(apiURL);
 export const Home: FC<{}> = () => {
   let [username, setUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [botsLive, setBotsLive] = useState<Bot[]>([]);
+  const [botsLive, setBotsLive] = useState<local.BotInfo[]>([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const channelID = searchParams.get("channel");
