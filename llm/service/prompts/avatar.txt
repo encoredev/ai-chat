@@ -1,3 +1,3 @@
-Generate a realistic, professional photograph for the following character. Avoid including text in the image:
+Generate a profile picture (photograph), Sigma 85 mm f/1.4, DSLR, studio lighting, for the person with this description:
 
 %s
