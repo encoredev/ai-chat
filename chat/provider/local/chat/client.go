@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"encore.dev/rlog"
+	"encore.dev/types/uuid"
 )
 
 // Example copied and adapted from
@@ -30,19 +31,21 @@ const (
 )
 
 type ClientMessage struct {
-	ID             string `json:"id"`
-	Type           string `json:"type"`
-	UserId         string `json:"userId"`
-	ConversationId string `json:"conversationId"`
-	Content        string `json:"content"`
-	Avatar         string `json:"avatar"`
-	Username       string `json:"username"`
-	Conversations  []struct {
+	ID               string `json:"id"`
+	Type             string `json:"type"`
+	UserId           string `json:"userId"`
+	ConversationId   string `json:"conversationId"`
+	ConversationName string `json:"conversationName"`
+	Content          string `json:"content"`
+	Avatar           string `json:"avatar"`
+	Username         string `json:"username"`
+	Conversations    []struct {
 		ID            string `json:"id"`
 		LastMessageID string `json:"lastMessageId"`
 	}
-	Timestamp time.Time `json:"timestamp"`
-	Client    *Client   `json:"-"`
+	Timestamp time.Time   `json:"timestamp"`
+	Client    *Client     `json:"-"`
+	Bots      []uuid.UUID `json:"bots"`
 }
 
 // Client is a middleman between the websocket connection and the svc.

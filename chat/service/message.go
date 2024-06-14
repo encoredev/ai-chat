@@ -136,20 +136,22 @@ func (svc *Service) ProcessProviderChannelCreated(ctx context.Context, msg *prov
 	if !ok {
 		return errors.New("provider not found")
 	}
-	channel, err := svc.insertChannel(ctx, provider.ChannelInfo{
-		Provider: msg.Provider,
-		ID:       msg.ChannelID,
-		Name:     msg.ChannelID,
+	q := db.New()
+	channel, err := q.GetChannelByProviderId(ctx, chatdb.Stdlib(), db.GetChannelByProviderIdParams{
+		ProviderID: msg.ChannelID,
+		Provider:   msg.Provider,
 	})
 	if err != nil {
 		return errors.Wrap(err, "insert channel")
 	}
-	resp, err := botsvc.List(ctx, &botsvc.ListBotRequest{})
+	resp, err := botsvc.List(ctx, &botsvc.ListBotRequest{IDs: msg.Bots})
 	if err != nil {
 		return errors.Wrap(err, "list bots")
 	}
-	bots := fns.SelectRandom(resp.Bots, 2)
-	q := db.New()
+	bots := resp.Bots
+	if len(msg.Bots) == 0 {
+		bots = fns.SelectRandom(bots, 2)
+	}
 	for _, b := range bots {
 		_, err = q.UpsertBotChannel(ctx, chatdb.Stdlib(), db.UpsertBotChannelParams{
 			Bot:      b.ID,

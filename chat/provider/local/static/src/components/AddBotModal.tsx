@@ -11,13 +11,8 @@ import {
 } from "@headlessui/react";
 import Modal, { ModalProps } from "./Modal.tsx";
 import Button from "./Button.tsx";
-import Client, { Local, local } from "../client.ts";
+import Client, { Local, local, bot } from "../client.ts";
 import { CaretDown } from "@phosphor-icons/react";
-
-export interface AddBotStatus {
-  botName: string;
-  status: "success" | "failure" | "creating" | "inviting";
-}
 
 const apiURL = import.meta.env.DEV
   ? Local
@@ -27,10 +22,10 @@ const client = new Client(apiURL);
 
 const AddBotModal: FC<
   ModalProps & {
-    channelID: string;
-    statusChange: (s?: AddBotStatus) => void;
+    botSelected: (bot: local.BotInfo) => void;
+    botCreate: (name: string, bot: Promise<bot.CreateBotResponse>) => void;
   }
-> = ({ channelID, statusChange, show, onHide }) => {
+> = ({ botSelected, botCreate, show, onHide }) => {
   const [bots, setBots] = useState<local.BotInfo[]>([]);
   const [selectedBot, setSelectedBot] = useState<local.BotInfo | undefined>();
   const [selectedBotProfile, setSelectedBotProfile] = useState<
@@ -40,41 +35,20 @@ const AddBotModal: FC<
   const [botPrompt, setBotPrompt] = useState("");
   const disableButton = !botName || !botPrompt;
 
-  const addToChannel = async (botID: string) => {
-    client.chat
-      .AddBotToProviderChannel("localchat", channelID, botID)
-      .then(() => {
-        if (statusChange) statusChange();
-      })
-      .catch(() => {
-        if (statusChange) statusChange({ botName: botName, status: "failure" });
-      });
-  };
-
-  const inviteBot = async () => {
+  const selectBot = async () => {
     if (!selectedBot) return;
-    if (statusChange)
-      statusChange({ botName: selectedBot.name, status: "inviting" });
-    addToChannel(selectedBot.id);
+    botSelected(selectedBot);
     onHide();
   };
 
   const createBot = async () => {
-    if (statusChange) statusChange({ botName: botName, status: "creating" });
     onHide();
-
-    client.bot
+    botCreate(botName, client.bot
       .Create({
         name: botName,
         prompt: botPrompt,
         llm: "openai",
-      })
-      .then((resp) => {
-        addToChannel(resp.ID);
-      })
-      .catch(() => {
-        if (statusChange) statusChange({ botName: botName, status: "failure" });
-      });
+      }))
   };
 
   useEffect(() => {
@@ -193,7 +167,7 @@ const AddBotModal: FC<
               </div>
 
               <div className="flex space-x-4 justify-end mt-6">
-                <Button size="sm" mode="light" onClick={inviteBot}>
+                <Button size="sm" mode="light" onClick={selectBot}>
                   Invite
                 </Button>
               </div>
