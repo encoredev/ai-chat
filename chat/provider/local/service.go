@@ -144,21 +144,36 @@ func (s *Service) JoinChannel(ctx context.Context, channelID string, bot *botdb.
 	return nil
 }
 
-func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afterID string, client *chat.Client) error {
+func (s *Service) sendChannelInfo(ctx context.Context, channelID string, channelName string, afterID string, client *chat.Client, botIDs ...uuid.UUID) error {
 	channel, err := s.data.GetChannel(ctx, channelID)
 	if err != nil {
 		return errors.Wrap(err, "get channel")
 	}
 	if channel == nil {
-		_, err := provider.InboxTopic.Publish(ctx, &provider.Message{
+		_, err := s.data.InsertChannel(ctx, channelID, channelName)
+		if err != nil {
+			return errors.Wrap(err, "insert channel")
+		}
+		client.SendMessage(&chat.ClientMessage{
+			Type:             "channel_info",
+			ConversationId:   channelID,
+			ConversationName: channelName,
+		})
+		_, err = provider.InboxTopic.Publish(ctx, &provider.Message{
 			Provider:   chatdb.ProviderLocalchat,
 			ProviderID: uuid.Must(uuid.NewV4()).String(),
 			ChannelID:  channelID,
 			Time:       time.Now(),
+			Bots:       botIDs,
 			Type:       "channel_created",
 		})
 		return errors.Wrap(err, "publish message")
 	} else {
+		client.SendMessage(&chat.ClientMessage{
+			Type:             "channel_info",
+			ConversationId:   channelID,
+			ConversationName: channel.Name,
+		})
 		users, bots, err := s.data.GetChannelUsers(ctx, channel)
 		if err != nil {
 			return errors.Wrap(err, "get channel users")
@@ -214,14 +229,14 @@ func (s *Service) sendChannelHistory(ctx context.Context, channelID string, afte
 func (s *Service) handleClientMessage(ctx context.Context, clientMsg *chat.ClientMessage) error {
 	if clientMsg.Type == "reconnect" && clientMsg.Client != nil {
 		for _, channel := range clientMsg.Conversations {
-			err := s.sendChannelHistory(ctx, channel.ID, channel.LastMessageID, clientMsg.Client)
+			err := s.sendChannelInfo(ctx, channel.ID, "", channel.LastMessageID, clientMsg.Client)
 			if err != nil {
 				return errors.Wrap(err, "send channel history")
 			}
 		}
 		return nil
 	} else if clientMsg.Type == "join" && clientMsg.Client != nil {
-		return s.sendChannelHistory(ctx, clientMsg.ConversationId, "", clientMsg.Client)
+		return s.sendChannelInfo(ctx, clientMsg.ConversationId, clientMsg.ConversationName, "", clientMsg.Client, clientMsg.Bots...)
 	} else if clientMsg.Type != "message" {
 		return nil
 	}

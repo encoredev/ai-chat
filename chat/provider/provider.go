@@ -42,6 +42,7 @@ type Message struct {
 	Content    string
 	Time       time.Time
 	Type       string
+	Bots       []uuid.UUID
 }
 
 // User is a user in a provider

@@ -21,14 +21,13 @@ import {
   MessageContentType,
   MessageDirection,
   MessageStatus,
-  Participant,
   TextContent,
   useChat,
   User,
 } from "@chatscope/use-chat";
 import { ExampleChatService } from "./ChatService";
 import ProfileModal from "./ProfileModal";
-import AddBotModal, { AddBotStatus } from "./AddBotModal";
+import AddBotModal from "./AddBotModal";
 import {
   DiscordLogo,
   GithubLogo,
@@ -42,7 +41,7 @@ import {
 import poweredBy from "../assets/powered-by-encore.png";
 import InviteFriendModal from "./InviteFriendModal.tsx";
 import SlideOver from "./SlideOver.tsx";
-import Client, { Local } from "../client.ts";
+import Client, { Local, local, bot } from "../client.ts";
 
 const apiURL = import.meta.env.DEV
   ? Local
@@ -50,19 +49,26 @@ const apiURL = import.meta.env.DEV
 
 const client = new Client(apiURL);
 
+interface AddBotStatus {
+  botName: string;
+  status: "success" | "failure" | "creating" | "inviting";
+}
+
 export const Chat = ({
   user,
   channelID,
+  channelName,
+  bots,
 }: {
   user: User;
   channelID: string;
+  channelName?: string;
+  bots: local.BotInfo[];
 }) => {
   // Get all chat related values and methods from useChat hook
   const {
-    addConversation,
     currentMessages,
     activeConversation,
-    setActiveConversation,
     sendMessage,
     getUser,
     currentMessage,
@@ -84,14 +90,8 @@ export const Chat = ({
 
   const chatService = service as ExampleChatService;
   useEffect(() => {
-    let conv = new Conv({
-      id: channelID,
-      participants: [new Participant({ id: user.id })],
-    });
-    addConversation(conv);
     addUser(user);
-    setActiveConversation(channelID);
-    chatService.joinChannel(channelID);
+    chatService.joinChannel(channelID, channelName, bots)
   }, []);
 
   useEffect(() => {
@@ -122,6 +122,30 @@ export const Chat = ({
 
   const isBot = (userID: string) => {
     return !!getUser(userID)?.avatar;
+  };
+
+  const handleBotCreate = async (name: string, bot:Promise<bot.CreateBotResponse>) => {
+    setBotStatus({ botName: name, status: "creating" });
+    bot.then((resp) => {
+      addToChannel({id: resp.id, name: name, avatar: ""});
+      setBotStatus({ botName: name, status: "success" })
+    }).catch((err) => {
+      console.error(err);
+      setBotStatus({ botName: name, status: "failure" });
+    });
+  };
+
+
+  const addToChannel = async (bot: local.BotInfo) => {
+    setBotStatus({ botName: bot.name, status: "inviting" });
+    client.chat
+      .AddBotToProviderChannel("localchat", channelID, bot.id)
+      .then(() => {
+        setBotStatus({ botName: bot.name, status: "success" });
+      })
+      .catch(() => {
+        setBotStatus({ botName: bot.name, status: "failure" });
+      });
   };
 
   const handleSend = (text: string) => {
@@ -208,9 +232,9 @@ export const Chat = ({
       />
 
       <AddBotModal
-        statusChange={(s?: AddBotStatus) => setBotStatus(s)}
+        botSelected={addToChannel}
+        botCreate={handleBotCreate}
         show={addUserShow}
-        channelID={channelID}
         onHide={() => setAddUserShow(false)}
       />
 
@@ -252,7 +276,7 @@ export const Chat = ({
             <div className="flex items-center justify-between mr-4">
               <p className="flex font-mono items-center space-x-2 text-white font-semibold px-4 py-2">
                 <span className="opacity-50 text-xl">#</span>{" "}
-                <span className="text-sm">{channelID}</span>
+                <span className="text-sm">{activeConversation?.description}</span>
               </p>
 
               <ConversationHeader.Back className="ml-4">
@@ -341,7 +365,7 @@ export const Chat = ({
           onSend={handleSend}
           disabled={!activeConversation}
           attachButton={false}
-          placeholder={`Message #${channelID}`}
+          placeholder={`Message ${activeConversation ? "#" + activeConversation.description : ""}`}
         />
       </ChatContainer>
     </MainContainer>

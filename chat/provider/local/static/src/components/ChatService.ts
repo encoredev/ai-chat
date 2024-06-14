@@ -32,6 +32,8 @@ import {
   UserTypingEvent,
 } from "@chatscope/use-chat/dist/events";
 import { ChatMessage } from "@chatscope/use-chat/dist/ChatMessage";
+import { local } from "../client";
+import {Conversation as Conv} from "@chatscope/use-chat/dist/Conversation";
 
 type EventHandlers = {
   onMessage: ChatEventHandler<
@@ -66,6 +68,7 @@ interface ServiceMessage {
   type: string;
   userId: string;
   conversationId: ConversationId;
+  conversationName: string;
   username: string;
   content: string;
   avatar: string;
@@ -73,7 +76,7 @@ interface ServiceMessage {
 }
 
 export class ExampleChatService implements IChatService {
-  storage?: IStorage;
+  storage: IStorage;
   updateState: UpdateState;
   ws: ReconnectingWebSocket;
   user: User;
@@ -128,7 +131,15 @@ export class ExampleChatService implements IChatService {
         console.error("Invalid message", event.data);
         return;
       }
-      if (msg.type === "leave") {
+      if (msg.type == "channel_info") {
+        let conv = new Conv({
+          id: msg.conversationId,
+          description: msg.conversationName,
+          participants: [new Participant({ id: user.id })],
+        });
+        this.storage.addConversation(conv);
+        this.storage.setActiveConversation(msg.conversationId);
+      }else if (msg.type === "leave") {
         this.storage?.removeParticipant(msg.conversationId, msg.userId);
       } else if (msg.type === "join") {
         if (msg.userId === user.id) {
@@ -197,13 +208,16 @@ export class ExampleChatService implements IChatService {
     });
   }
 
-  joinChannel(conversationID: ConversationId) {
+  joinChannel(conversationID: ConversationId, name?: string, bots?:local.BotInfo[]) {
+    let botIDs = bots?.map((bot) => bot.id);
     this.ws.send(
       JSON.stringify({
         userId: this.user.id,
         type: "join",
         username: this.user.id,
         conversationId: conversationID,
+        conversationName: name,
+        bots: botIDs
       }),
     );
   }
