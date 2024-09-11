@@ -20,6 +20,15 @@ var chatDb = sqldb.Named("chat")
 
 type DataSource struct{}
 
+func (d *DataSource) InsertChannel(ctx context.Context, id, name string) (*db.Channel, error) {
+	q := db.New()
+	return q.UpsertChannel(ctx, chatDb.Stdlib(), db.UpsertChannelParams{
+		ProviderID: id,
+		Provider:   db.ProviderLocalchat,
+		Name:       name,
+	})
+}
+
 func (d *DataSource) GetChannel(ctx context.Context, id string) (*db.Channel, error) {
 	q := db.New()
 	channel, err := q.GetChannelByProviderID(ctx, chatDb.Stdlib(), db.GetChannelByProviderIDParams{

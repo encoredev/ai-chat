@@ -12,12 +12,14 @@ import { Chat } from "./components/Chat";
 import { AutoDraft } from "@chatscope/use-chat/dist/enums/AutoDraft";
 import { nanoid } from "nanoid";
 import { humanId } from "human-id";
-import { useSearchParams } from "react-router-dom";
+import {useLocation, useSearchParams} from "react-router-dom";
 
 export const EncoreChat = () => {
   const [searchParams] = useSearchParams();
   const channelID = searchParams.get("channel") || humanId();
   const userName = searchParams.get("name") || "User";
+  const bots = useLocation().state?.bots
+  const channelName = useLocation().state?.channelName
 
   const user = new User({
     id: userName,
@@ -47,7 +49,7 @@ export const EncoreChat = () => {
           autoDraft: AutoDraft.Save | AutoDraft.Restore,
         }}
       >
-        <Chat channelID={channelID} user={user} />
+        <Chat channelID={channelID} user={user} bots={bots} channelName={channelName} />
       </ChatProvider>
     </div>
   );

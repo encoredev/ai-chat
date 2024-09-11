@@ -7,7 +7,12 @@ import { FC, useEffect, useState } from "react";
 import { humanId } from "human-id";
 import poweredBy from "./assets/powered-by-encore.png";
 import Button from "./components/Button";
-import Client, { Local, local } from "./client";
+import Client, { Local, local, bot } from "./client";
+import AddBotModal from "./components/AddBotModal.tsx";
+import ProfileModal from "./components/ProfileModal.tsx";
+import {User} from "@chatscope/use-chat";
+import {nanoid} from "nanoid";
+import {Robot, Plus} from "@phosphor-icons/react";
 
 const apiURL = import.meta.env.DEV
   ? Local
@@ -19,22 +24,58 @@ export const Home: FC<{}> = () => {
   let [username, setUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [botsLive, setBotsLive] = useState<local.BotInfo[]>([]);
+  const [addBotShow, setAddBotShow] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [channelID, setChannelID] = useState(searchParams.get("channel") || "");
+  const [channelName, setChannelName] = useState("");
+  const channelID = searchParams.get("channel")
+  const [selectedBots, setSelectedBots] = useState<local.BotInfo[]>([]);
+  const [selectedBotProfile, setSelectedBotProfile] = useState<User | undefined>();
+  const [botCreateStatus, setBotCreateStatus] = useState<{name:string, status:"creating"|"failure"} | undefined>();
+
+  async function handleBotCreate(name: string, bot: Promise<bot.CreateBotResponse>) {
+    setBotCreateStatus({name, status: "creating"});
+    bot.then((newBot) => {
+      setSelectedBots([...selectedBots, {
+        id: newBot.id,
+        name: newBot.name,
+        avatar: newBot.avatar,
+      }]);
+      setBotCreateStatus(undefined);
+    }).catch(() => {
+      setBotCreateStatus({name, status: "failure"});
+    })
+  }
+
+  async function loadProfile(selectedBot: local.BotInfo) {
+    client.bot
+      .Get(selectedBot.id)
+      .then((resp) => {
+        setSelectedBotProfile(new User({
+          id: selectedBot.id,
+          username: resp.Name,
+          avatar: selectedBot.avatar,
+          bio: resp.Profile,
+        }));
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
 
   async function joinChat() {
     setIsSubmitting(true);
-    const channel = channelID.replaceAll(" ", "-").toLowerCase();
+    const channel = channelName.replaceAll(" ", "-").toLowerCase();
     navigate({
       pathname: "/chat",
       search: createSearchParams({
         name: username,
-        channel:
-          channel ||
-          humanId({ adjectiveCount: 0, capitalize: false, separator: "-" }),
+        channel: channelID || nanoid(),
       }).toString(),
-    });
+    }, {state: {
+      channelName: channel || humanId({ adjectiveCount: 0, capitalize: false, separator: "-" }),
+      bots: selectedBots
+    }});
   }
 
   useEffect(() => {
@@ -42,6 +83,7 @@ export const Home: FC<{}> = () => {
       .ListBots()
       .then((resp) => {
         setBotsLive(resp.bots);
+        setSelectedBots(resp.bots.sort(() => 0.5 - Math.random()).slice(0, 2));
       })
       .catch((err) => {
         console.error(err);
@@ -50,6 +92,26 @@ export const Home: FC<{}> = () => {
 
   return (
     <div className="relative isolate overflow-hidden bg-gray-900 min-h-screen">
+      <AddBotModal
+        botSelected={(b) => {
+          if(selectedBots.find((bot) => bot.id === b.id)) return;
+          setSelectedBots([...selectedBots, b])
+        }}
+        botCreate={handleBotCreate}
+        show={addBotShow}
+        onHide={() => setAddBotShow(false)}
+      />
+      <ProfileModal
+        show={selectedBotProfile !== undefined}
+        user={selectedBotProfile}
+        kickLabel={"Remove bot"}
+        onHide={() => setSelectedBotProfile(undefined)}
+        removeFromChannel={() => {
+          if (!selectedBotProfile) return;
+          setSelectedBots(selectedBots.filter((b) => b.id !== selectedBotProfile.id));
+          setSelectedBotProfile(undefined);
+        }}
+      />
       <svg
         className="absolute inset-0 -z-10 h-full w-full stroke-white/10 [mask-image:radial-gradient(100%_100%_at_top_right,white,transparent)]"
         aria-hidden="true"
@@ -120,21 +182,54 @@ export const Home: FC<{}> = () => {
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Topic (optional)"
-                  className="max-w-72 text-xl block rounded-md border-gray-500 bg-gray-800 focus:ring-0 focus:border-gray-500"
-                  value={channelID}
-                  onChange={(e) => setChannelID(e.target.value)}
-                />
-              </div>
+              {!channelID &&
+                <>
+                  <div className="flex flex-row items-center py-3 space-x-2" >
+                    <div className="pr-1 text-gray-600 text-xl">Bots: </div>
+                    {selectedBots.map((bot) => {
+                      return (
+                        <img
+                          key={bot.avatar + bot.name}
+                          className="cursor-pointer relative z-30 inline-block h-10 w-10 rounded-full ring-2 ring-white"
+                          src={bot.avatar}
+                          alt={bot.name}
+                          onClick={() => loadProfile(bot)}
+                        />
+                      );
+                    })}
+                    { botCreateStatus && botCreateStatus.status == "creating" && (
+                          <div
+                            className={`
+                                    rounded-full ring-2 ring-white
+                                    flex items-center justify-center bg-gray-500 relative font-semibold
+                                    h-[40px] w-[40px] animate-pulse
+                                  `}
+                          >
+                            <Robot size={30} className="text-white" />
+                          </div>
+
+                    )}
+                    <a className=" cursor-pointer" hidden={botCreateStatus !== undefined || selectedBots.length >= 4} type={"button"} onClick={()=>setAddBotShow(true)}>
+                      <Plus size={28} />
+                    </a>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Topic (optional)"
+                      className="max-w-72 text-xl block rounded-md border-gray-500 bg-gray-800 focus:ring-0 focus:border-gray-500"
+                      value={channelName}
+                      onChange={(e) => setChannelName(e.target.value)}
+                    />
+                  </div>
+                </>
+          }
               <div>
                 <Button
                   mode="light"
                   size="lg"
                   type="submit"
-                  disabled={!username || isSubmitting}
+                  disabled={!username || botCreateStatus !== undefined || isSubmitting}
                 >
                   <span className="hidden sm:inline">Join Chat</span>
                   <span className="inline sm:hidden">Join Chat</span>

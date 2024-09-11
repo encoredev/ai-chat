@@ -35,11 +35,19 @@ type CreateBotRequest struct {
 	LLM    string `json:"llm"`
 }
 
+type CreateBotResponse struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Profile  string    `json:"profile"`
+	Provider string    `json:"provider"`
+	Avatar   string    `json:"avatar"`
+}
+
 // Create creates a new bot with the given name, prompt, and LLM provider. It will generate a profile description
 // and an avatar (if the chosen llm provider supports it).
 //
 //encore:api public method=POST path=/bots
-func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*db.Bot, error) {
+func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*CreateBotResponse, error) {
 	if req.Name == "" || req.Prompt == "" || req.LLM == "" {
 		return nil, errors.New("name, prompt, and llm are required")
 	}
@@ -70,7 +78,7 @@ func (svc *Service) Create(ctx context.Context, req *CreateBotRequest) (*db.Bot,
 			return nil, errors.Wrap(err, "insert avatar")
 		}
 	}
-	return bot, nil
+	return &CreateBotResponse{ID: bot.ID, Name: bot.Name, Profile: bot.Profile, Provider: bot.Provider, Avatar: bot.GetAvatarURL()}, nil
 }
 
 type Bots struct {

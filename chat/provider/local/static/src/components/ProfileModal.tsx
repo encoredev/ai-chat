@@ -6,10 +6,11 @@ import Button from "./Button.tsx";
 
 const ProfileModal: FC<
   ModalProps & {
+    kickLabel?: string;
     user?: User;
     removeFromChannel: () => void;
   }
-> = ({ user, show, onHide, removeFromChannel }) => {
+> = ({ kickLabel="Kick from channel", user, show, onHide, removeFromChannel }) => {
   const [currentUser, setCurrentUser] = useState<User | undefined>(user);
 
   useEffect(() => {
@@ -31,9 +32,9 @@ const ProfileModal: FC<
                 <span className="sr-only">Online</span>
               </span>
             </DialogTitle>
-            <Button size="sm" mode="light" onClick={removeFromChannel}>
-              Kick from channel
-            </Button>
+              <Button size="sm" mode="light" onClick={removeFromChannel}>
+                {kickLabel}
+              </Button>
           </div>
           <div className="mt-2">
             <span className="text-gray-400 font-semibold leading-6">Bio</span>
