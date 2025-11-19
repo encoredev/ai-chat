@@ -4,7 +4,6 @@
 
 This application is your bridge between popular chat platforms like Discord and Slack and the powerful minds of LLMs like OpenAI and Google Gemini. It empowers you to build AI bots with unique personalities that can seamlessly engage in conversations with users.
 
-test
 ### Features
 
 * **Multi-platform Versatility:** Deploy your bots on Discord, Slack, or a local web-based chat for testing. Your digital puppets, your stage!
